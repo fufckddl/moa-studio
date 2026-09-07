@@ -1,0 +1,16 @@
+{
+  "$schema": "https://unpkg.com/wrangler@4.129.0/config-schema.json",
+  "name": "moa-photo-edit",
+  "main": "index.mjs",
+  "compatibility_date": "2026-09-01",
+  "account_id": "c1b19ed38d2a75f7fc4b385f050708a1",
+  "workers_dev": true,
+  "durable_objects": { "bindings": [{ "name": "PHOTO_QUOTA", "class_name": "PhotoQuota" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["PhotoQuota"] }],
+  "vars": {
+    "SUPABASE_URL": "https://mbmxkathxgvznuphbfbg.supabase.co",
+    "APP_ORIGIN": "https://moa-studio.pages.dev",
+    "PHOTO_EDIT_ENABLED": "1",
+    "PHOTO_EDIT_UNLIMITED_USER_IDS": "238bb685-ee6d-4655-a70a-8dc6fe402e09"
+  }
+}

@@ -1,0 +1,68 @@
+.pricing-section { max-width: 1720px; margin: auto; border-top: 1px solid #c9cec2; }
+.pricing-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 40px; }
+.pricing-intro { padding-bottom: 8px; }
+.pricing-intro p { font-size: 16px; line-height: 2; margin: 0 0 20px; color: #596252; }
+.pricing-intro > span { font-size: 12px; border-bottom: 1px solid #7b8773; padding-bottom: 7px; }
+.pricing-controls { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin: 55px 0 26px; }
+.pricing-controls > p { font-size: 12px; color: #65705f; line-height: 1.9; }
+.pricing-controls > p span { display: block; }
+.pricing-toggle { display: flex; flex-shrink: 0; border: 1px solid #bfc7b7; padding: 4px; }
+.pricing-toggle button { font: inherit; font-size: 13px; padding: 12px 19px; border: 0; color: #52624d; background: transparent; cursor: pointer; }
+.pricing-toggle button[aria-pressed=true] { background: #233c30; color: #faf6eb; }
+.pricing-toggle span { font-size: 10px; margin-left: 6px; }
+.pricing-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); border: 1px solid #c1c8b8; }
+.pricing-card { padding: 33px 30px 38px; min-width: 0; }
+.pricing-card + .pricing-card { border-left: 1px solid #c1c8b8; }
+.pricing-card-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 28px; }
+.pricing-card-top > span:first-child { font-size: 11px; letter-spacing: .14em; }
+.pricing-badge { font-size: 10px; border: 1px solid #aebca4; padding: 5px 7px; white-space: nowrap; }
+.pricing-card h3 { font-size: 33px; letter-spacing: -.04em; margin: 26px 0 12px; }
+.pricing-description { font-size: 12px; line-height: 1.8; min-height: 44px; margin: 0; color: #697261; word-break: keep-all; }
+.pricing-amount { display: flex; align-items: baseline; gap: 7px; margin-top: 30px; white-space: nowrap; }
+.pricing-amount strong { font-family: 'DM Sans', sans-serif; font-size: clamp(38px,3.6vw,56px); font-weight: 400; letter-spacing: -.05em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.pricing-amount > span { font-size: 13px; }
+.pricing-billing { font-size: 11px; min-height: 20px; margin: 13px 0 25px; color: #697261; }
+.pricing-cta { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 17px 18px; border: 1px solid #67775c; background: transparent; color: inherit; font: inherit; font-size: 13px; cursor: pointer; }
+.pricing-cta:hover { background: #e9ecdf; }
+.pricing-feature-label { margin: 28px 0 18px; font-size: 10px; letter-spacing: .04em; color: #697261; }
+.pricing-card ul { padding: 0; margin: 0; list-style: none; display: grid; gap: 16px; }
+.pricing-card li { display: flex; gap: 10px; font-size: 12px; line-height: 1.7; word-break: keep-all; }
+.pricing-card li > span { opacity: .6; }
+.pricing-featured { background: #233c30; color: #f6f1df; }
+.pricing-featured .pricing-description, .pricing-featured .pricing-billing, .pricing-featured .pricing-feature-label { color: #c5ceba; }
+.pricing-featured .pricing-cta { background: #f6f1df; color: #233c30; border-color: #f6f1df; }
+.pricing-featured .pricing-cta:hover { background: #dfE6d1; }
+.pricing-selection { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-top: 20px; background: #e8ecdf; padding: 24px 28px; }
+.pricing-selection strong { font-size: 13px; font-weight: 500; }
+.pricing-selection p { font-size: 12px; line-height: 1.9; margin-bottom: 0; }
+.pricing-selection button { flex-shrink: 0; background: none; border: 0; border-bottom: 1px solid; color: inherit; font: inherit; font-size: 12px; padding: 10px 0; cursor: pointer; }
+.pricing-faq { display: grid; grid-template-columns: 1fr 2fr; gap: 70px; margin-top: 90px; }
+.pricing-faq .pricing-feature-label { margin-top: 0; letter-spacing: .14em; }
+.pricing-faq h3 { font-size: 34px; line-height: 1.6; margin: 0; }
+.pricing-questions details { border-top: 1px solid #c1c8b8; }
+.pricing-questions details:last-child { border-bottom: 1px solid #c1c8b8; }
+.pricing-questions summary { display: flex; justify-content: space-between; gap: 20px; padding: 24px 0; font-size: 14px; cursor: pointer; list-style: none; }
+.pricing-questions summary::-webkit-details-marker { display: none; }
+.pricing-questions summary > span { font-size: 18px; }
+.pricing-questions details[open] summary > span { transform: rotate(45deg); }
+.pricing-questions details > p { color: #65705f; font-size: 13px; line-height: 2; margin: 0 30px 25px 0; }
+.pricing-section button:focus-visible, .pricing-section summary:focus-visible { outline: 2px solid #829771; outline-offset: 4px; }
+@media(min-width:701px) and (max-width:1050px) { .pricing-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .pricing-card:nth-child(3) { border-left: 0; } .pricing-card:nth-child(n+3) { border-top: 1px solid #c1c8b8; } }
+@media(max-width:1050px) { .pricing-card { padding: 25px 20px; } .pricing-card-top { align-items: flex-start; flex-direction: column; gap: 12px; } }
+@media(max-width:700px) {
+  .pricing-heading { align-items: flex-start; flex-direction: column; gap: 22px; }
+  .pricing-intro p { font-size: 13px; margin-bottom: 15px; }
+  .pricing-controls { align-items: flex-start; flex-direction: column-reverse; gap: 14px; margin-top: 36px; }
+  .pricing-toggle { width: 100%; } .pricing-toggle button { flex: 1; }
+  .pricing-grid { grid-template-columns: 1fr; }
+  .pricing-card { padding: 28px 24px 35px; }
+  .pricing-card + .pricing-card { border-left: 0; border-top: 1px solid #c1c8b8; }
+  .pricing-card-top { flex-direction: row; align-items: center; }
+  .pricing-card h3 { font-size: 31px; } .pricing-amount strong { font-size: 48px; }
+  .pricing-description { min-height: 0; }
+  .pricing-faq { grid-template-columns: 1fr; gap: 30px; margin-top: 60px; }
+  .pricing-faq h3 { font-size: 28px; } .pricing-faq h3 br { display: none; }
+  .pricing-questions summary { font-size: 13px; }
+  .pricing-selection { flex-direction: column; align-items: flex-start; padding: 22px; }
+  .landing-header nav .landing-studio-link { display: none; }
+}

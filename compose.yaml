@@ -1,0 +1,51 @@
+name: moa-studio
+
+services:
+  web:
+    build:
+      context: .
+    image: moa-studio:latest
+    restart: unless-stopped
+    env_file:
+      - ./.env.production
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 8791
+      PUBLIC_APP_URL: https://${APP_DOMAIN:?Set APP_DOMAIN in .env.production or pass --env-file .env.production}
+      MOA_SECURE_COOKIES: "1"
+      TOSS_LIVE_ENABLED: ${TOSS_LIVE_ENABLED:-0}
+    expose:
+      - "8791"
+    volumes:
+      - moa_data:/app/.data
+    networks:
+      - moa_internal
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      web:
+        condition: service_started
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?Set APP_DOMAIN in .env.production or pass --env-file .env.production}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - moa_internal
+
+volumes:
+  moa_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  moa_internal:
+    driver: bridge

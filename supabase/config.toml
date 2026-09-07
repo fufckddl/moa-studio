@@ -1,0 +1,13 @@
+project_id = "moa-studio"
+
+[functions.moa-payments]
+# Public config is readable; all account endpoints verify auth.getUser(token).
+verify_jwt = false
+entrypoint = "./functions/moa-payments/index.ts"
+import_map = "./functions/moa-payments/deno.json"
+
+[functions.moa-content]
+# Public status is readable; entitlement and generation endpoints verify auth.getUser(token).
+verify_jwt = false
+entrypoint = "./functions/moa-content/index.ts"
+import_map = "./functions/moa-content/deno.json"

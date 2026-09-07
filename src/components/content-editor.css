@@ -1,0 +1,224 @@
+.schedule-toggle {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: start;
+  margin: 4px 0 14px;
+  color: #233c30;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.schedule-toggle input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: #233c30;
+}
+
+.schedule-toggle strong,
+.schedule-toggle span {
+  display: block;
+}
+
+.schedule-toggle span {
+  margin-top: 2px;
+  color: rgba(35, 60, 48, 0.66);
+  font-weight: 500;
+}
+
+.card-actions,
+.editor-actions,
+.workspace-actions,
+.schedule-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.editor-actions {
+  justify-content: flex-start;
+  margin: 0 0 12px;
+}
+
+.workspace-actions,
+.schedule-actions {
+  justify-content: flex-start;
+}
+
+.card-actions .ghost-button,
+.editor-actions .ghost-button,
+.workspace-actions .ghost-button,
+.schedule-actions .ghost-button {
+  min-height: 38px;
+  padding: 0 12px;
+}
+
+.layout-description {
+  margin: -2px 0 12px;
+  color: rgba(35, 60, 48, 0.64);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.slide-controls .card-slide-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 3px;
+  scrollbar-width: thin;
+}
+
+.slide-controls .card-slide-strip .slide-thumb {
+  flex: 0 0 92px;
+}
+
+.style-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.field input[type="color"] {
+  min-height: 40px;
+  padding: 4px;
+}
+
+.field input[type="range"] {
+  padding: 0;
+  box-shadow: none;
+}
+
+.caption-workspace .field {
+  margin-bottom: 0;
+}
+
+.hashtag-list {
+  min-height: 35px;
+}
+
+.schedule-intro {
+  margin: 0;
+  color: rgba(35, 60, 48, 0.68);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.schedule-editor {
+  display: grid;
+  gap: 12px;
+}
+
+.schedule-item.editable {
+  grid-template-columns: 1fr;
+}
+
+.schedule-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.schedule-item-header strong {
+  color: #233c30;
+}
+
+.schedule-fields {
+  display: grid;
+  gap: 12px;
+}
+
+.empty-state {
+  margin: 0;
+  padding: 16px;
+  border: 1px solid rgba(35, 60, 48, 0.14);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.42);
+  color: rgba(35, 60, 48, 0.68);
+  font-size: 13px;
+}
+
+.photo-thumb.selected {
+  outline: 2px solid #254a3b;
+  outline-offset: 2px;
+}
+
+.photo-thumb .photo-select {
+  position: static;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  background: transparent;
+}
+
+.photo-thumb .photo-select:disabled {
+  cursor: default;
+}
+
+@media (min-width: 980px) {
+  .card-workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+    grid-template-areas:
+      "canvas edit-toggle"
+      "canvas edit-panel"
+      "actions edit-panel"
+      "slides edit-panel";
+    align-items: start;
+    justify-content: center;
+    column-gap: 24px;
+  }
+
+  .card-workspace .canvas-frame {
+    grid-area: canvas;
+    justify-self: end;
+    width: min(100%, 430px);
+  }
+
+  .card-workspace .card-actions {
+    grid-area: actions;
+    justify-self: end;
+    width: min(100%, 430px);
+  }
+
+  .card-workspace .slide-controls {
+    grid-area: slides;
+    justify-self: end;
+    width: min(100%, 430px);
+  }
+
+  .card-workspace .edit-toggle {
+    grid-area: edit-toggle;
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  .card-workspace .edit-panel {
+    grid-area: edit-panel;
+    justify-self: stretch;
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .style-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .card-actions,
+  .editor-actions,
+  .workspace-actions,
+  .schedule-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .card-actions .ghost-button,
+  .editor-actions .ghost-button,
+  .workspace-actions .ghost-button,
+  .schedule-actions .ghost-button {
+    width: 100%;
+  }
+}

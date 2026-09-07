@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.data/
+.env*
+!.env.example
+.DS_Store
+artifacts/qa/
+*.tsbuildinfo
+.omx/recovery/
+.wrangler/
+supabase/.temp/
+
+# Private agent state, local backups and generated QA artifacts
+.omx/
+artifacts/
+backups/
+*.dump
+*.backup
+library-*.png

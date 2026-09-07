@@ -1,0 +1,14 @@
+node_modules
+dist
+.data
+.git
+.omx
+.env*
+!.env.example
+.DS_Store
+artifacts/qa
+*.tsbuildinfo
+npm-debug.log*
+Dockerfile
+compose.yaml
+Caddyfile

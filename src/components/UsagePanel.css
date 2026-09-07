@@ -1,0 +1,124 @@
+.usage-panel {
+  display: grid;
+  gap: 14px;
+  margin: 0 36px 20px;
+  padding: 18px 20px;
+  border: 1px solid rgba(35, 60, 48, 0.14);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.5);
+  color: #233c30;
+}
+
+.usage-panel strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+}
+
+.usage-panel p {
+  margin: 6px 0 0;
+  color: rgba(35, 60, 48, 0.68);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.usage-kicker {
+  color: rgba(35, 60, 48, 0.58);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.usage-panel dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.usage-panel dl div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(35, 60, 48, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.42);
+}
+
+.usage-panel dt {
+  color: rgba(35, 60, 48, 0.58);
+  font-size: 12px;
+}
+
+.usage-panel dd {
+  margin: 4px 0 0;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.usage-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: rgba(35, 60, 48, 0.64);
+  font-size: 12px;
+}
+
+.usage-foot .ghost-button {
+  min-height: 36px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.usage-panel.compact {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 60px;
+  padding: 10px 14px;
+}
+
+.usage-panel.compact span {
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(35, 60, 48, 0.72);
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.usage-panel.compact .ghost-button {
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+@media (max-width: 980px) {
+  .usage-panel {
+    margin: 0 20px 18px;
+  }
+}
+
+@media (max-width: 640px) {
+  .usage-panel {
+    margin-inline: 14px;
+    padding: 16px;
+  }
+
+  .usage-panel dl {
+    grid-template-columns: 1fr;
+  }
+
+  .usage-foot {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .usage-panel.compact {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .usage-panel.compact span {
+    white-space: normal;
+  }
+}

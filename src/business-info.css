@@ -1,0 +1,14 @@
+.business-info { width: 100%; font-size: 11px; line-height: 1.9; }
+.business-info dl { display: flex; flex-wrap: wrap; gap: 8px 25px; margin: 0 0 14px; }
+.business-info dl > div { display: flex; gap: 8px; }
+.business-info dt { opacity: .7; }
+.business-info dd { margin: 0; }
+.business-info small { font-size: 10px; opacity: .7; }
+.landing-footer { flex-wrap: wrap; row-gap: 28px; }
+.landing-footer .business-info { flex-basis: 100%; color: #d5d9c9; }
+.studio-business-footer { padding: 28px 36px; margin-top: 48px; border-top: 1px solid #c9cec2; color: #52604f; }
+@media (max-width:640px) {
+  .business-info dl { gap: 6px 18px; }
+  .business-info dl > div { flex-wrap: wrap; }
+  .studio-business-footer { padding: 24px 14px; }
+}

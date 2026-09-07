@@ -1,0 +1,20 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import ts from 'typescript';
+const { outputText } = ts.transpileModule(readFileSync(new URL('../src/lib/autosave.ts', import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } });
+const { createDraftProject, mergeWorkspaceForProject, mergeWorkspaceProjects } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+test('autosave keeps the draft identity and preserves remote edits and deletions in other projects', () => {
+  const old = { id: 'other', name: 'stale', updatedAt: '2026-09-01' };
+  const fresh = { ...old, name: 'remote edit', updatedAt: '2026-09-07' };
+  const deleted = { id: 'deleted', updatedAt: '2026-09-01' };
+  const input = { projectId: 'current', brand: {}, activeBrandId: 'primary', brief: { productName: '  latest draft  ' }, photos: [], pack: {} };
+  const project = createDraftProject(input);
+  assert.equal(project.id, 'current');
+  assert.equal(project.name, 'latest draft');
+  const remote = { projects: [fresh] };
+  const merged = mergeWorkspaceForProject(remote, [old, deleted], project);
+  assert.deepEqual(merged.map(item => item.id).sort(), ['current', 'other']);
+  assert.equal(merged.find(item => item.id === 'other').name, 'remote edit');
+  assert.deepEqual(mergeWorkspaceProjects(remote, [old, deleted]), [fresh]);
+});
