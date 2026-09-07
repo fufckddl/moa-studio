@@ -108,13 +108,13 @@ export function Landing({ onStart, onLogin, onAccount, userName, onCheckout }: L
   return <main className="landing" ref={root} id="main-content">
     <a className="landing-skip" href="#story">모아 소개로 건너뛰기</a>
     <section className="landing-hero" aria-labelledby="landing-title">
-      <img ref={heroPhoto} className="landing-hero-photo" src="/assets/cafe-hero.png" alt="창으로 들어오는 오후의 빛과 나무 테이블 위 한 잔의 커피" fetchPriority="high" width="1536" height="1024" />
+      <img ref={heroPhoto} className="landing-hero-photo" src="/assets/moa-hero-cafe.webp" alt="창으로 들어오는 오후의 빛과 나무 테이블 위 한 잔의 커피" fetchPriority="high" width="1536" height="1024" />
       <header className="landing-header">
         <a className="landing-logo" href="#/" aria-label="모아 스튜디오 홈">mo:a <span>studio</span></a>
         <nav aria-label="메인 메뉴">
           <a href="#story">모아 이야기</a>
           <a href="#pricing">플랜</a>
-          <a className="landing-studio-link" href="#/studio" onClick={event => { event.preventDefault(); onStart(); }}>스튜디오 열기 <span aria-hidden="true">↗</span></a>
+          <a className="landing-studio-link" href="/studio" onClick={event => { event.preventDefault(); onStart(); }}>스튜디오 열기 <span aria-hidden="true">↗</span></a>
           <button className="landing-account" type="button" onClick={userName ? onAccount : onLogin}>{userName ? `${userName}님` : '로그인'}</button>
         </nav>
       </header>
@@ -140,7 +140,7 @@ export function Landing({ onStart, onLogin, onAccount, userName, onCheckout }: L
         <a className="landing-text-link" href="#process">어떤 콘텐츠를 만들 수 있나요? <span aria-hidden="true">↓</span></a>
       </div>
       <figure className="landing-story-photo" data-reveal>
-        <img src="/assets/cafe-latte.png" alt="햇살이 드는 카페 테이블 위의 시그니처 크림 라떼" loading="lazy" width="1122" height="1402" />
+        <img src="/assets/cafe-latte.webp" alt="햇살이 드는 카페 테이블 위의 시그니처 크림 라떼" loading="lazy" width="1122" height="1402" />
         <figcaption>한 잔의 커피에서 시작되는 이야기</figcaption>
       </figure>
     </section>
@@ -164,7 +164,7 @@ export function Landing({ onStart, onLogin, onAccount, userName, onCheckout }: L
     <section className="landing-start" aria-labelledby="start-title">
       <div className="landing-start-content" data-reveal>
         <div><h2 id="start-title">이제, 우리 카페의 차례.</h2><p>사진 한 장으로 첫 콘텐츠를 만들어 보세요.</p></div>
-        <a className="landing-start-link" href="#/studio" onClick={event => { event.preventDefault(); onStart(); }}>스튜디오 시작하기 <span aria-hidden="true">↗</span></a>
+        <a className="landing-start-link" href="/studio" onClick={event => { event.preventDefault(); onStart(); }}>스튜디오 시작하기 <span aria-hidden="true">↗</span></a>
       </div>
       <footer className="landing-footer">
         <a className="landing-logo" href="#/" onClick={() => window.scrollTo({ top: 0, behavior: 'instant' })} aria-label="모아 스튜디오 맨 위로">mo:a <span>studio</span></a>

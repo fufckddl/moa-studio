@@ -9,3 +9,12 @@
 
 /index.html
   Cache-Control: no-cache
+
+/assets/*
+  Cache-Control: public, max-age=86400
+
+/studio*
+  X-Robots-Tag: noindex, nofollow
+
+/auth/*
+  X-Robots-Tag: noindex, nofollow

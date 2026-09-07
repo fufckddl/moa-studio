@@ -322,7 +322,7 @@ async function persistRevokedOrder(order: OrderRow, payment: TossPayment) {
 }
 
 function shouldSyncProviderStatus(order: OrderRow, config: ActivePaymentConfig) {
-  return config.mode === 'live' && order.mode === 'live' && order.status === 'PAID' && !!order.toss_payment_key;
+  return order.mode === config.mode && order.status === 'PAID' && !!order.toss_payment_key;
 }
 
 function verifyTossPayment(payment: TossPayment, order: OrderRow, paymentKey: string) {

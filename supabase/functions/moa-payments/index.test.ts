@@ -232,3 +232,165 @@ Deno.test('cloud live gate requires paid feature readiness and syncs provider ca
     for (const [key, value] of originalEnv) value === undefined ? Deno.env.delete(key) : Deno.env.set(key, value);
   }
 });
+
+Deno.test('cloud test-mode order lookups sync matching-mode provider cancellations without granting membership', async () => {
+  const owner = '7d8e8e69-d6b8-4dde-9bae-163ef7501531';
+  const originalFetch = globalThis.fetch;
+  const environment = {
+    SUPABASE_URL: 'https://moa-test-sync.supabase.co',
+    SUPABASE_ANON_KEY: 'fake-anon-key-for-offline-test',
+    SUPABASE_SERVICE_ROLE_KEY: 'fake-service-key-for-offline-test',
+    PUBLIC_APP_URL: 'https://moa.example.com',
+    TOSS_CLIENT_KEY: 'test_ck_mock',
+    TOSS_SECRET_KEY: 'test_sk_mock',
+    TOSS_LIVE_ENABLED: '0',
+  };
+  const originalEnv = new Map(Object.keys(environment).map(key => [key, Deno.env.get(key)]));
+  for (const [key, value] of Object.entries(environment)) Deno.env.set(key, value);
+
+  let order: Record<string, unknown> | undefined;
+  let providerStatus = 'DONE';
+  let finalizeCalls = 0;
+  let providerLookups = 0;
+  const reply = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
+
+  globalThis.fetch = ((input: string | URL | Request, init?: RequestInit) => {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    if (url.hostname === 'moa-test-sync.supabase.co') {
+      if (url.pathname === '/auth/v1/user') return Promise.resolve(reply({ id: owner, aud: 'authenticated', email: 'qa@example.invalid' }));
+      if (url.pathname === '/rest/v1/payment_orders' && init?.method === 'POST') {
+        order = { ...JSON.parse(String(init.body)), toss_payment_key: null, receipt_url: null, toss_status: null, paid_at: null, period_end: null };
+        return Promise.resolve(reply(order, 201));
+      }
+      if (url.pathname === '/rest/v1/payment_orders' && init?.method === 'PATCH') {
+        order = { ...order, ...JSON.parse(String(init.body)) };
+        return Promise.resolve(reply(order));
+      }
+      if (url.pathname === '/rest/v1/payment_orders') {
+        const select = url.searchParams.get('select') ?? '';
+        const byId = order && url.searchParams.get('id') === `eq.${order.id}`;
+        const byOwner = order && url.searchParams.get('user_id') === `eq.${order.user_id}`;
+        if (byId && (!url.searchParams.has('user_id') || byOwner)) return Promise.resolve(reply(order));
+        if (select === '*') return Promise.resolve(reply(order && byOwner ? [order] : []));
+        if (select.includes('plan')) return Promise.resolve(reply(null));
+        return Promise.resolve(reply({ message: 'not found', code: 'PGRST116' }, 406));
+      }
+      if (url.pathname === '/rest/v1/rpc/finalize_payment_order') {
+        finalizeCalls++;
+        const body = JSON.parse(String(init?.body));
+        order = {
+          ...order,
+          status: 'PAID',
+          toss_payment_key: body.p_payment_key,
+          toss_status: body.p_toss_status,
+          paid_at: body.p_paid_at,
+          period_end: '2027-02-28T00:00:00Z',
+        };
+        return Promise.resolve(reply(order));
+      }
+    }
+    if (url.hostname === 'api.tosspayments.com') {
+      if (url.pathname === '/v1/payments/confirm') {
+        const body = JSON.parse(String(init?.body));
+        return Promise.resolve(reply({ status: 'DONE', currency: 'KRW', orderId: body.orderId, paymentKey: body.paymentKey, totalAmount: body.amount }));
+      }
+      if (url.pathname.startsWith('/v1/payments/')) {
+        providerLookups++;
+        const paymentKey = decodeURIComponent(url.pathname.split('/').at(-1) ?? '');
+        return Promise.resolve(reply({ status: providerStatus, currency: 'KRW', orderId: order?.id, paymentKey, totalAmount: order?.amount }));
+      }
+    }
+    throw new Error(`Unexpected network request: ${url.origin}${url.pathname}`);
+  }) as typeof fetch;
+
+  async function call(path: string, method = 'GET', body?: unknown, login = true) {
+    return await handle(new Request(`https://moa-test-sync.supabase.co/functions/v1/moa-payments${path}`, {
+      method,
+      headers: { Origin: 'https://moa.example.com', ...(login ? { Authorization: 'Bearer mocked-user-token' } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      body: body ? JSON.stringify(body) : undefined,
+    }));
+  }
+
+  try {
+    let response = await call('/orders', 'POST', { plan: 'studio', interval: 'month' });
+    const created = await response.json();
+    response = await call('/confirm', 'POST', { orderId: created.orderId, paymentKey: 'pay_test_cancel_key', amount: created.amount });
+    assertEquals(response.status, 200);
+    assertEquals(finalizeCalls, 1);
+    providerStatus = 'PARTIAL_CANCELED';
+    const canceled = await (await call(`/orders/${created.orderId}`)).json();
+    const history = await (await call('/orders')).json();
+    const membership = await (await call('/membership')).json();
+    assertEquals(providerLookups, 1);
+    assertEquals(canceled.status, 'CANCELED');
+    assertEquals(canceled.providerStatus, 'PARTIAL_CANCELED');
+    assertEquals(history.orders[0].status, 'CANCELED');
+    assertEquals(membership.membership, null);
+  } finally {
+    globalThis.fetch = originalFetch;
+    for (const [key, value] of originalEnv) value === undefined ? Deno.env.delete(key) : Deno.env.set(key, value);
+  }
+});
+
+Deno.test('cloud order lookups do not sync provider status across payment modes', async () => {
+  const owner = '7d8e8e69-d6b8-4dde-9bae-163ef7501532';
+  const originalFetch = globalThis.fetch;
+  const environment = {
+    SUPABASE_URL: 'https://moa-cross-mode.supabase.co',
+    SUPABASE_ANON_KEY: 'fake-anon-key-for-offline-test',
+    SUPABASE_SERVICE_ROLE_KEY: 'fake-service-key-for-offline-test',
+    PUBLIC_APP_URL: 'https://moa.example.com',
+    TOSS_CLIENT_KEY: 'live_ck_mock',
+    TOSS_SECRET_KEY: 'live_sk_mock',
+    TOSS_LIVE_ENABLED: '1',
+    PAID_FEATURES_READY: '1',
+    MOA_AI_READY: '1',
+  };
+  const originalEnv = new Map(Object.keys(environment).map(key => [key, Deno.env.get(key)]));
+  for (const [key, value] of Object.entries(environment)) Deno.env.set(key, value);
+  const order = {
+    id: 'moa_1234567890abcdef1234567890abcdef',
+    user_id: owner,
+    plan: 'studio',
+    interval: 'month',
+    mode: 'test',
+    order_name: '모아 스튜디오 Standard 월간 플랜',
+    amount: 7900,
+    currency: 'KRW',
+    status: 'PAID',
+    toss_payment_key: 'pay_cross_mode_key',
+    receipt_url: null,
+    toss_status: 'DONE',
+    created_at: '2026-01-01T00:00:00Z',
+    paid_at: '2026-01-01T00:00:00Z',
+    period_end: '2027-01-01T00:00:00Z',
+    expires_at: '2026-01-01T00:30:00Z',
+  };
+  const reply = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json' } });
+
+  globalThis.fetch = ((input: string | URL | Request) => {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    if (url.hostname === 'moa-cross-mode.supabase.co') {
+      if (url.pathname === '/auth/v1/user') return Promise.resolve(reply({ id: owner, aud: 'authenticated', email: 'qa@example.invalid' }));
+      if (url.pathname === '/rest/v1/payment_orders') return Promise.resolve(reply(order));
+    }
+    if (url.hostname === 'api.tosspayments.com') throw new Error('provider lookup should not run for mismatched order mode');
+    throw new Error(`Unexpected network request: ${url.origin}${url.pathname}`);
+  }) as typeof fetch;
+
+  async function call(path: string) {
+    return await handle(new Request(`https://moa-cross-mode.supabase.co/functions/v1/moa-payments${path}`, {
+      method: 'GET',
+      headers: { Origin: 'https://moa.example.com', Authorization: 'Bearer mocked-user-token' },
+    }));
+  }
+
+  try {
+    const refreshed = await (await call(`/orders/${order.id}`)).json();
+    assertEquals(refreshed.status, 'PAID');
+    assertEquals(refreshed.providerStatus, 'DONE');
+  } finally {
+    globalThis.fetch = originalFetch;
+    for (const [key, value] of originalEnv) value === undefined ? Deno.env.delete(key) : Deno.env.set(key, value);
+  }
+});

@@ -341,7 +341,7 @@ export function createPaymentService(options = {}) {
   }
 
   function shouldSyncProviderStatus(order) {
-    return config.valid && config.mode === 'live' && order.mode === 'live' && order.status === 'PAID' && !!order.toss_payment_key;
+    return config.valid && order.mode === config.mode && order.status === 'PAID' && !!order.toss_payment_key;
   }
 
   function requireUser(request) {

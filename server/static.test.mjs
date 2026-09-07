@@ -9,6 +9,10 @@ test('production serves SPA and assets with API isolation and private file prote
   const directory = await mkdtemp(join(tmpdir(), 'moa-static-'));
   const dist = join(directory, 'dist');
   await mkdir(join(dist, 'assets'), { recursive: true });
+  await mkdir(join(dist, 'terms'), { recursive: true });
+  await writeFile(join(dist, 'terms', 'index.html'), '<h1>이용약관</h1>');
+  await writeFile(join(dist, '404.html'), '<h1>페이지를 찾을 수 없어요</h1>');
+  await writeFile(join(dist, 'sitemap.xml'), '<urlset></urlset>');
   await writeFile(join(dist, 'index.html'), '<!doctype html><h1>Moa</h1>');
   await writeFile(join(dist, 'assets', 'app.js'), 'export const app = true;');
   await writeFile(join(directory, 'private.txt'), 'must never be served');
@@ -32,6 +36,9 @@ test('production serves SPA and assets with API isolation and private file prote
     assert.equal(response.headers.get('cache-control'), 'no-cache');
     assert.match(await response.text(), /Moa/);
   }
+  assert.match(await (await fetch(base + '/terms')).text(), /이용약관/);
+  assert.equal((await fetch(base + '/missing-page')).status, 404);
+  assert.match((await fetch(base + '/sitemap.xml')).headers.get('content-type'), /application\/xml/);
   const asset = await fetch(base + '/assets/app.js');
   assert.equal(asset.status, 200);
   assert.match(asset.headers.get('content-type'), /text\/javascript/);

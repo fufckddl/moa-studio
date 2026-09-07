@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="모아 스튜디오">
+  <rect width="1200" height="630" fill="#233c30"/>
+  <image href="/assets/cafe-latte.webp" x="760" y="0" width="440" height="630" preserveAspectRatio="xMidYMid slice"/>
+  <rect x="0" y="0" width="1200" height="630" fill="url(#shade)"/>
+  <text x="86" y="160" fill="#f7f0da" font-family="Arial, sans-serif" font-size="42" font-weight="700">mo:a studio</text>
+  <text x="86" y="295" fill="#f7f0da" font-family="Arial, sans-serif" font-size="74" font-weight="700">카페의 순간을</text>
+  <text x="86" y="390" fill="#f7f0da" font-family="Arial, sans-serif" font-size="74" font-weight="700">이야기로.</text>
+  <text x="90" y="500" fill="#d5d9c9" font-family="Arial, sans-serif" font-size="29">사진과 메뉴 정보로 카드뉴스와 게시글을 만듭니다.</text>
+  <defs>
+    <linearGradient id="shade" x1="0" x2="1">
+      <stop offset="0" stop-color="#233c30"/>
+      <stop offset=".65" stop-color="#233c30" stop-opacity=".86"/>
+      <stop offset="1" stop-color="#233c30" stop-opacity=".12"/>
+    </linearGradient>
+  </defs>
+</svg>

@@ -1,0 +1,106 @@
+name: Supabase Backup
+
+on:
+  schedule:
+    - cron: '0 17 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Validate configuration without creating a backup archive
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Encrypted DB and Storage backup
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_PROJECT_REF: mbmxkathxgvznuphbfbg
+      SUPABASE_URL: https://mbmxkathxgvznuphbfbg.supabase.co
+      SUPABASE_DB_SCHEMAS: public,auth,storage
+      SUPABASE_OPTIONAL_DB_SCHEMAS: moa_private
+      BACKUP_RETENTION_DAYS: 30
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      BACKUP_ENCRYPTION_PASSPHRASE: ${{ secrets.BACKUP_ENCRYPTION_PASSPHRASE }}
+      BACKUP_DESTINATION_URI: ${{ secrets.BACKUP_DESTINATION_URI }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ${{ secrets.BACKUP_AWS_REGION }}
+      BACKUP_DRY_RUN: ${{ inputs.dry_run || false }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install backup tools
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          if [[ "$BACKUP_DESTINATION_URI" == s3://* ]]; then
+            sudo apt-get install -y awscli
+          fi
+
+      - name: Validate backup configuration
+        shell: bash
+        run: |
+          missing=0
+          for name in SUPABASE_DB_URL SUPABASE_SERVICE_ROLE_KEY BACKUP_ENCRYPTION_PASSPHRASE BACKUP_DESTINATION_URI; do
+            if [ -z "${!name:-}" ]; then
+              if [ "${{ github.event_name }}" = "schedule" ]; then
+                echo "::notice title=Backup not configured::$name must be configured before scheduled backups can run."
+              else
+                echo "::error title=Missing backup secret::$name must be configured before backups can run."
+              fi
+              missing=1
+            fi
+          done
+          if [[ "${BACKUP_DESTINATION_URI:-}" == s3://* ]]; then
+            for name in AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_REGION; do
+              if [ -z "${!name:-}" ]; then
+                if [ "${{ github.event_name }}" = "schedule" ]; then
+                  echo "::notice title=Backup not configured::$name is required for BACKUP_DESTINATION_URI=s3://..."
+                else
+                  echo "::error title=Missing S3 backup secret::$name is required for BACKUP_DESTINATION_URI=s3://..."
+                fi
+                missing=1
+              fi
+            done
+          fi
+          if [ "$missing" -ne 0 ] && [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "BACKUP_SKIP=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          exit "$missing"
+
+      - name: Run encrypted backup
+        if: env.BACKUP_SKIP != '1'
+        shell: bash
+        run: |
+          args=()
+          if [ "${BACKUP_DRY_RUN:-false}" = "true" ]; then
+            args+=(--dry-run)
+          fi
+          node scripts/backup-supabase.mjs "${args[@]}"

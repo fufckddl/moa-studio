@@ -1,17 +1,23 @@
 import type { Brand, Project } from '../types';
 import type { User as SupabaseAuthUser } from '@supabase/supabase-js';
-import { getSupabaseClient, isCloudConfigured } from './supabase';
+import { getAccessToken, getSupabaseClient, isCloudConfigured } from './supabase';
 
 export interface User { id: string; name: string; email: string }
 export interface BrandProfile extends Brand { id: string }
 export interface AccountWorkspace { brand: Brand | null; projects: Project[]; brandProfiles?: BrandProfile[]; activeBrandId?: string | null }
 export interface AuthResult { user: User | null; confirmationRequired?: boolean }
+export interface AuthValues { name?: string; email: string; password: string; captchaToken?: string }
+export interface DeleteAccountValues { password: string; confirmation: string; captchaToken?: string }
+export interface EraseAccountDataValues { password: string; confirmation: string; captchaToken?: string }
 
 const PHOTO_BUCKET = 'moa-photos';
+const ACCOUNT_FUNCTION = 'moa-account';
 const MAX_PROJECTS = 100;
 const MAX_PHOTOS_PER_PROJECT = 3;
 const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 const SHARED_ASSETS = new Set(['/assets/cafe-latte.png']);
+const TURNSTILE_SITE_KEY = ((import.meta as unknown as { env?: Record<string, string | undefined> }).env?.VITE_TURNSTILE_SITE_KEY ?? '').trim();
+const TURNSTILE_REQUIRED = ((import.meta as unknown as { env?: Record<string, string | undefined> }).env?.VITE_TURNSTILE_REQUIRED ?? '').trim().toLowerCase() === 'true';
 const uploadedPhotos = new Map<string, { fingerprint: string; path: string }>();
 
 async function request<T>(path: string, method = 'GET', body?: unknown, userId?: string): Promise<T> {
@@ -40,6 +46,10 @@ function authError(message: string): Error {
 
 function workspaceError(message: string): Error {
   return new Error(message || '계정 보관함을 처리하지 못했어요. 잠시 후 다시 시도해 주세요.');
+}
+
+function neutralResetMessage(): Error {
+  return new Error('비밀번호 재설정 메일을 보낼 수 없어요. 잠시 후 다시 시도해 주세요.');
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -187,18 +197,20 @@ async function cloudGetSession(): Promise<{ user: User | null }> {
   return { user: data.user ? toUser(data.user) : null };
 }
 
-async function cloudAuthenticate(mode: 'login' | 'signup', values: { name?: string; email: string; password: string }): Promise<AuthResult> {
+async function cloudAuthenticate(mode: 'login' | 'signup', values: AuthValues): Promise<AuthResult> {
   const email = values.email.trim();
   const password = values.password;
   const supabase = getSupabaseClient();
 
   if (mode === 'signup') {
+    assertCaptchaReady(values.captchaToken);
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { name: values.name?.trim() || email.split('@')[0] },
         emailRedirectTo: new URL('/', window.location.origin).href,
+        captchaToken: values.captchaToken,
       },
     });
     if (error) throw authError(error.message);
@@ -207,7 +219,8 @@ async function cloudAuthenticate(mode: 'login' | 'signup', values: { name?: stri
     return { user: toUser(data.user) };
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  assertCaptchaReady(values.captchaToken);
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken: values.captchaToken } });
   if (error) throw authError(error.message);
   if (!data.user) throw new Error('로그인 세션을 만들지 못했어요.');
   return { user: toUser(data.user) };
@@ -268,8 +281,69 @@ async function cloudPutWorkspace(workspace: AccountWorkspace, userId: string): P
   return hydrateWorkspace(userId, persisted);
 }
 
+function assertCaptchaReady(captchaToken?: string): void {
+  if (!isTurnstileEnabled()) return;
+  if (!TURNSTILE_SITE_KEY) throw new Error('보안 확인 설정이 필요해요. 관리자에게 문의해 주세요.');
+  if (!captchaToken) throw new Error('보안 확인을 완료해 주세요.');
+}
+
+function resetRedirectUrl(): string {
+  return new URL('/auth/reset-password', window.location.origin).href;
+}
+
+async function cloudSendPasswordReset(email: string, captchaToken?: string): Promise<void> {
+  assertCaptchaReady(captchaToken);
+  const { error } = await getSupabaseClient().auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: resetRedirectUrl(),
+    captchaToken,
+  });
+  if (error) {
+    const normalized = error.message.toLowerCase();
+    if (normalized.includes('rate limit') || normalized.includes('too many requests')) throw authError(error.message);
+    throw neutralResetMessage();
+  }
+}
+
+async function cloudUpdatePassword(password: string): Promise<User> {
+  const { data, error } = await getSupabaseClient().auth.updateUser({ password });
+  if (error) throw authError(error.message);
+  if (!data.user) throw new Error('비밀번호를 바꾼 뒤 세션을 확인하지 못했어요.');
+  return toUser(data.user);
+}
+
+async function accountFunction(path: '/erase' | '/delete', body: DeleteAccountValues | EraseAccountDataValues): Promise<void> {
+  const token = await getAccessToken();
+  if (!token) throw new Error('로그인 세션을 다시 확인해 주세요.');
+  const { data, error } = await getSupabaseClient().functions.invoke(`${ACCOUNT_FUNCTION}${path}`, {
+    body: { ...body },
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (error) {
+    let detail = '';
+    if (error.context instanceof Response) {
+      try {
+        const payload: unknown = await error.context.clone().json();
+        if (isRecord(payload) && typeof payload.error === 'string') detail = payload.error;
+      } catch { /* A network or non-JSON failure uses the retry message below. */ }
+    }
+    throw new Error(detail || '계정 요청을 처리하지 못했어요. 연결을 확인한 뒤 다시 시도해 주세요.');
+  }
+  if (isRecord(data) && typeof data.error === 'string') throw new Error(data.error);
+}
+
+async function cloudEraseAccountData(values: EraseAccountDataValues): Promise<void> {
+  await accountFunction('/erase', values);
+  clearLocalAccountDrafts();
+}
+
+async function cloudDeleteAccount(values: DeleteAccountValues): Promise<void> {
+  await accountFunction('/delete', values);
+  await getSupabaseClient().auth.signOut({ scope: 'local' }).catch(() => undefined);
+  clearLocalAccountDrafts();
+}
+
 export const getSession = () => isCloudConfigured ? cloudGetSession() : request<{ user: User | null }>('/auth/session');
-export const authenticate = (mode: 'login' | 'signup', values: { name?: string; email: string; password: string }): Promise<AuthResult> => (
+export const authenticate = (mode: 'login' | 'signup', values: AuthValues): Promise<AuthResult> => (
   isCloudConfigured ? cloudAuthenticate(mode, values) : request<{ user: User }>(`/auth/${mode}`, 'POST', values)
 );
 export const logout = () => isCloudConfigured ? cloudLogout() : request('/auth/logout', 'POST', {});
@@ -277,6 +351,38 @@ export const getWorkspace = () => isCloudConfigured ? cloudGetWorkspace() : requ
 export const putWorkspace = (workspace: AccountWorkspace, userId: string) => (
   isCloudConfigured ? cloudPutWorkspace(workspace, userId) : request<AccountWorkspace>('/workspace', 'PUT', workspace, userId)
 );
+export const sendPasswordReset = (email: string, captchaToken?: string) => (
+  isCloudConfigured ? cloudSendPasswordReset(email, captchaToken) : Promise.reject(new Error('비밀번호 재설정은 클라우드 계정에서 사용할 수 있어요.'))
+);
+export const updatePassword = (password: string) => (
+  isCloudConfigured ? cloudUpdatePassword(password) : Promise.reject(new Error('비밀번호 변경은 클라우드 계정에서 사용할 수 있어요.'))
+);
+export const eraseAccountData = (values: EraseAccountDataValues) => (
+  isCloudConfigured ? cloudEraseAccountData(values) : Promise.reject(new Error('계정 데이터 삭제는 클라우드 계정에서 사용할 수 있어요.'))
+);
+export const deleteAccount = (values: DeleteAccountValues) => (
+  isCloudConfigured ? cloudDeleteAccount(values) : Promise.reject(new Error('계정 삭제는 클라우드 계정에서 사용할 수 있어요.'))
+);
+export const isTurnstileEnabled = () => Boolean(TURNSTILE_SITE_KEY || TURNSTILE_REQUIRED);
+export const getTurnstileSiteKey = () => TURNSTILE_SITE_KEY;
+
+export function clearLocalAccountDrafts(): void {
+  uploadedPhotos.clear();
+  try {
+    const storage = window.localStorage;
+    const keys = Array.from({ length: storage.length }, (_, index) => storage.key(index)).filter((key): key is string => Boolean(key));
+    for (const key of keys) {
+      if (key.startsWith('moa-studio:')) storage.removeItem(key);
+    }
+  } catch {
+    // Browser storage cleanup is best effort after the server has erased account data.
+  }
+  try {
+    if (window.indexedDB) window.indexedDB.deleteDatabase('moa-studio-person-library');
+  } catch {
+    // IndexedDB cleanup is best effort after the server has erased account data.
+  }
+}
 
 export function subscribeWorkspace(userId: string, onChange: () => void): () => void {
   let closed = false;

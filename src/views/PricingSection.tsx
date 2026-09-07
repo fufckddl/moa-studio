@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import '../pricing.css';
-import { expectedAmount } from '../lib/payments';
+import { expectedAmount } from '../lib/planPricing';
 
 const plans = [
   { id: 'free', name: '무료 체험', english: 'FREE', description: '첫 사진을 부담 없이 수정해 보세요', monthly: 0, yearly: 0, features: ['AI 이미지 생성·수정 가입 후 총 3회', '사진과 메뉴로 템플릿 콘텐츠 만들기', '카드뉴스 최대 10장 · 게시글 · 홍보 일정', 'PNG · ZIP 다운로드', '브랜드 프로필 최대 1개 · 나만의 보관함'] },

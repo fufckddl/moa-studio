@@ -7,14 +7,14 @@
     "dev": "node scripts/dev.mjs",
     "dev:web": "vite --host 127.0.0.1",
     "dev:api": "node --watch server/index.mjs",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && node scripts/prerender-public.mjs",
     "start": "NODE_ENV=production node server/index.mjs",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node --test server/*.test.mjs",
+    "test": "node --test server/*.test.mjs scripts/*.test.mjs",
     "typecheck": "tsc -b",
     "check:cloud": "node scripts/check-cloud-build.mjs",
     "deploy:cloud": "npm run build && npm run check:cloud && npx --yes wrangler@4.129.0 pages deploy dist --project-name moa-studio --branch main --commit-dirty=true",
-    "test:cloud": "npx --yes deno@2.9.6 test --allow-env --config supabase/functions/moa-content/deno.json supabase/functions/moa-payments/index.test.ts supabase/functions/moa-content/index.test.ts"
+    "test:cloud": "npx --yes deno@2.9.6 test --allow-env --config supabase/functions/moa-content/deno.json supabase/functions/moa-payments/index.test.ts supabase/functions/moa-content/index.test.ts supabase/functions/moa-account/index.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.115.0",

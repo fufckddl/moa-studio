@@ -22,7 +22,7 @@ test('cloud workspace save and hydration retain profile list and active selectio
   };
   globalThis.__brandProfileClient = client;
   t.after(() => { delete globalThis.__brandProfileClient; });
-  const source = readFileSync(new URL('../src/lib/auth.ts',import.meta.url),'utf8').replace(/^import \{ getSupabaseClient, isCloudConfigured \} from '\.\/supabase';$/m, 'const getSupabaseClient = () => globalThis.__brandProfileClient; const isCloudConfigured = true;');
+  const source = readFileSync(new URL('../src/lib/auth.ts',import.meta.url),'utf8').replace(/^import \{ getAccessToken, getSupabaseClient, isCloudConfigured \} from '\.\/supabase';$/m, 'const getSupabaseClient = () => globalThis.__brandProfileClient; const isCloudConfigured = true;');
   const {outputText} = ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.ESNext,target:ts.ScriptTarget.ES2022}});
   const api = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
   const first = { id:'a',name:'카페 A',tagline:'',instagram:'',location:'',color:'#254a3b' };

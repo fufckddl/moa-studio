@@ -14,9 +14,9 @@ import { freeEntitlements, generateContent, getEntitlements, getStatus, type Api
 import { defaultBrand, defaultBrief, initialPack, samplePhotos } from './seed';
 import { makeTemplatePack, syncTemplateCards } from '../shared/template.mjs';
 import { preparePhotos } from './lib/images';
+import { downloadCard, downloadPack } from './lib/export';
 import { replaceWorkspacePhoto } from './lib/photo-edit';
 import { loadBrand, loadBrandProfiles, loadProjects } from './lib/storage';
-import { downloadCard, downloadPack } from './lib/export';
 import { AUTOSAVE_DELAY_MS, autoSaveStatusText, createDraftProject, mergeWorkspaceForProject, mergeWorkspaceProjects, preserveVisiblePhotoUrls, readLastProjectId, writeLastProjectId, type AutosaveState, type WorkspaceProject } from './lib/autosave';
 import type { Brand, Brief, ContentPack, Photo } from './types';
 
@@ -26,9 +26,10 @@ type PendingAction = { kind: 'delete-brand'; id: string } | { kind: 'delete'; id
 
 function currentPage(): Page {
   if (['success', 'fail'].includes(new URLSearchParams(location.search).get('payment') || '')) return 'payment';
-  if (location.hash === '#/studio/library') return 'library';
-  if (location.hash === '#/studio/brand') return 'brand';
-  if (location.hash === '#/studio') return 'editor';
+  const path = location.hash.startsWith('#/studio') ? location.hash.slice(1) : location.pathname.replace(/\/$/, '');
+  if (path === '/studio/library') return 'library';
+  if (path === '/studio/brand') return 'brand';
+  if (path === '/studio') return 'editor';
   return 'home';
 }
 function message(error: unknown) { return error instanceof Error ? error.message : '문제가 생겼어요. 다시 시도해 주세요.'; }
@@ -60,8 +61,8 @@ function projectBrandId(project: WorkspaceProject, profiles: BrandProfile[]) {
 }
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
-  const [checkout, setCheckout] = useState<{plan: 'light' | 'studio' | 'plus'; interval: 'month' | 'year'} | null>(null);
-  const [authOpen, setAuthOpen] = useState(false);
+  const [checkout, setCheckout] = useState<{plan: 'light' | 'studio' | 'plus'; interval: 'month' | 'year'} | null>(() => { const query = new URLSearchParams(location.search); const plan = query.get('plan'); return plan === 'light' || plan === 'studio' || plan === 'plus' ? { plan, interval: query.get('interval') === 'year' ? 'year' : 'month' } : null; });
+  const [authOpen, setAuthOpen] = useState(new URLSearchParams(location.search).get('account') === '1');
   const [authReady, setAuthReady] = useState(false);
   const [authFailure, setAuthFailure] = useState('');
   const [savingAccount, setSavingAccount] = useState(false);
@@ -138,9 +139,15 @@ export default function App() {
       if (location.hash.startsWith('#/')) window.scrollTo({ top: 0, behavior: 'instant' });
     };
     window.addEventListener('hashchange', handleRoute);
-    return () => window.removeEventListener('hashchange', handleRoute);
+    window.addEventListener('popstate', handleRoute);
+    if (location.hash.startsWith('#/studio')) { history.replaceState(null, '', location.hash.slice(1)); handleRoute(); }
+    return () => { window.removeEventListener('hashchange', handleRoute); window.removeEventListener('popstate', handleRoute); };
   }, []);
   useEffect(() => {
+    const robots = document.querySelector('meta[name=robots]') ?? document.head.appendChild(document.createElement('meta'));
+    robots.setAttribute('name', 'robots'); robots.setAttribute('content', page === 'home' ? 'index, follow' : 'noindex, follow');
+    const canonical = document.querySelector('link[rel=canonical]');
+    canonical?.setAttribute('href', `https://moa-studio.pages.dev${page === 'home' ? '/' : location.pathname}`);
     document.title = page === 'home' ? '모아 스튜디오 — 카페의 순간을 모아, 이야기로' : `모아 스튜디오 · ${page === 'payment' ? '결제 확인' : page === 'editor' ? '콘텐츠 만들기' : page === 'library' ? '보관함' : '브랜드 설정'}`;
   }, [page]);
   useEffect(() => {
@@ -154,7 +161,7 @@ export default function App() {
     if (new URLSearchParams(location.search).has('payment')) history.replaceState(null, '', location.pathname);
     setCheckout(null);
     setPage(next);
-    location.hash = next === 'home' ? '/' : next === 'editor' ? '/studio' : `/studio/${next}`;
+    history.pushState(null, '', next === 'home' ? '/' : next === 'editor' ? '/studio' : `/studio/${next}`);
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
   useEffect(() => {
@@ -565,11 +572,12 @@ export default function App() {
   const filteredProjects = libraryBrandFilter === 'all'
     ? projects
     : projects.filter(project => projectBrandId(project, brandProfiles) === libraryBrandFilter);
-  const accountDialog = authOpen && <AuthDialog user={user} onClose={() => setAuthOpen(false)} onAuthenticated={authenticated} onLogout={signOut} />;
+  const accountDialog = authOpen && <AuthDialog user={user} onClose={() => setAuthOpen(false)} onAuthenticated={authenticated} onLogout={signOut} onAccountDeleted={() => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current); latest.current = null; location.replace('/studio?account=1'); }} onAccountDataErased={() => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current); latest.current = null; location.replace('/studio'); }} />;
+  const checkoutDialog = checkout && authReady && !authOpen && <CheckoutDialog {...checkout} user={user} onClose={() => setCheckout(null)} onLogin={showAccount} />;
   const notification = toast && <div className={`toast${toastLeaving ? ' toast-leaving' : ''}`} role="status">{toast}<button aria-label="알림 닫기" onClick={() => setToast('')}>×</button></div>;
   const connection = !authReady && <div className="auth-loading" role="status">{authFailure || '계정을 확인하고 있어요…'}{authFailure && <><button onClick={() => void restoreSession()}>다시 연결</button><button onClick={() => { setUser(null); installWorkspace(initialState()); setAuthReady(true); setAuthFailure(''); }}>비회원으로 계속</button></>}</div>;
   const saveStatus = autoSaveStatusText(user ? saveState : 'readonly', saveError);
-  if (page === 'home') return <><Landing onCheckout={(plan, interval) => setCheckout({plan, interval})} onStart={() => navigate('editor')} onLogin={showAccount} userName={user?.name} onAccount={showAccount} />{checkout && authReady && !authOpen && <CheckoutDialog {...checkout} user={user} onClose={() => setCheckout(null)} onLogin={showAccount} />}{accountDialog}{notification}{connection}</>;
+  if (page === 'home') return <><Landing onCheckout={(plan, interval) => setCheckout({plan, interval})} onStart={() => navigate('editor')} onLogin={showAccount} userName={user?.name} onAccount={showAccount} />{checkoutDialog}{accountDialog}{notification}{connection}</>;
   if (!authReady) return <main className="auth-recovery"><h1>스튜디오를 준비하고 있어요.</h1>{connection}<button onClick={() => navigate('home')}>홈으로 돌아가기</button></main>;
   if (page === 'payment') return <><PaymentResult user={user} onLogin={showAccount} onHome={() => navigate('home')} /><footer className="payment-business-footer"><BusinessInfo /></footer>{accountDialog}{notification}</>;
   return <Shell page={page} brand={brand} onNavigate={navigate} onHome={() => navigate('home')} saveStatus={saveStatus} saving={generating || uploading || savingAccount || photoChatBusy} readOnly={isReadOnly} accountControl={<button className="studio-account-button" onClick={showAccount}>{user ? `${user.name}님` : '로그인 / 회원가입'}</button>}>
@@ -580,6 +588,7 @@ export default function App() {
       </div></>}
     {page === 'library' && <Library brandFilter={<div className="library-filter" aria-label="브랜드별 보관함 보기"><label>브랜드 보기<select value={libraryBrandFilter} onChange={event => setLibraryBrandFilter(event.target.value)}><option value="all">전체 브랜드</option>{brandProfiles.map(profile => <option key={profile.id} value={profile.id}>{profile.name}</option>)}</select></label></div>} projects={filteredProjects} onOpen={project => void openProject(project)} onDelete={removeProject} onNew={() => void newProject()} readOnly={isReadOnly} onLogin={showAccount} />}
     {page === 'brand' && <div className="brand-settings-page"><UsagePanel user={user} status={status} entitlements={entitlements} loading={usageLoading} onRefresh={() => void refreshEntitlements(user, { silent: true })} /><BrandSettings key={activeBrandId} brand={brand} profiles={brandProfiles} activeBrandId={activeBrandId} brandLimit={entitlements.brandLimit} onSelect={id => void selectBrandProfile(id)} onCreate={createBrandProfile} onDelete={id => { if (requireLogin('로그인하면 브랜드를 삭제할 수 있어요.')) return; setPendingAction({ kind: 'delete-brand', id }); }} onChange={updateBrand} saveStatus={saveStatus} account={!!user} busy={savingAccount} readOnly={isReadOnly} onLogin={showAccount} /></div>}
+    {checkoutDialog}
     {accountDialog}
     {pendingAction && <ConfirmDialog title={pendingAction.kind === 'delete-brand' ? '브랜드 프로필을 삭제할까요?' : pendingAction.kind === 'delete' ? '콘텐츠를 삭제할까요?' : pendingAction.kind === 'regenerate' ? '콘텐츠를 다시 만들까요?' : '새 콘텐츠를 만들까요?'} confirmLabel={pendingAction.kind === 'delete-brand' ? '프로필 삭제' : pendingAction.kind === 'delete' ? '삭제' : pendingAction.kind === 'regenerate' ? '다시 만들기' : '새로 만들기'} onCancel={() => setPendingAction(null)} onConfirm={() => { if (pendingAction.kind === 'delete-brand') void deleteBrandProfile(pendingAction.id); else if (pendingAction.kind === 'delete') confirmDelete(pendingAction.id); else if (pendingAction.kind === 'regenerate') void runGenerate(); else resetProject(); setPendingAction(null); }}>{pendingAction.kind === 'delete-brand' ? '선택한 브랜드 프로필을 삭제합니다. 이 브랜드로 만든 기존 콘텐츠와 사진은 보관함에 그대로 남아요.' : pendingAction.kind === 'delete' ? '보관함에서 삭제됩니다. 이미 다운로드한 파일은 그대로 유지돼요.' : pendingAction.kind === 'regenerate' ? '현재 미리보기에서 직접 수정한 문구가 새 생성 결과로 바뀝니다.' : '현재 저장하지 않은 수정 내용은 사라집니다.'}</ConfirmDialog>}
     {notification}

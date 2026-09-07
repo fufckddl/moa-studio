@@ -26,7 +26,7 @@ test('workspace subscription scopes events, refreshes on reconnect and focus, an
   };
   t.after(() => { globalThis.window = originalWindow; globalThis.document = originalDocument; delete globalThis.__workspaceSubscriptionClient; });
   const source = readFileSync(new URL('../src/lib/auth.ts', import.meta.url), 'utf8')
-    .replace("import { getSupabaseClient, isCloudConfigured } from './supabase';", 'const getSupabaseClient = () => globalThis.__workspaceSubscriptionClient; const isCloudConfigured = true;');
+    .replace("import { getAccessToken, getSupabaseClient, isCloudConfigured } from './supabase';", 'const getSupabaseClient = () => globalThis.__workspaceSubscriptionClient; const isCloudConfigured = true;');
   const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } });
   const { subscribeWorkspace } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
   let changes = 0;

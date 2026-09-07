@@ -47,7 +47,7 @@ export type ContentCard = {
 
 export type ScheduleItem = {
   day: string;
-  date?: string;
+  date?: string | null;
   title: string;
   format: string;
   description: string;
@@ -309,7 +309,10 @@ function assertScheduleItem(item: unknown) {
       throw inputError(502, "일정 필드가 올바르지 않습니다.");
     }
   }
-  if (value.date !== undefined && typeof value.date !== "string") {
+  if (
+    value.date !== undefined && value.date !== null &&
+    typeof value.date !== "string"
+  ) {
     throw inputError(502, "일정 날짜가 올바르지 않습니다.");
   }
 }

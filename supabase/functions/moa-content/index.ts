@@ -1,8 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "@supabase/supabase-js";
 import {
+  assertContentPackShape,
   buildProviderInput,
   type ContentPack,
+  contentPackJsonSchema,
   type GenerateRequest,
   makeTemplatePack,
   MoaInputError,
@@ -16,7 +18,9 @@ const LOCAL_ORIGINS = new Set([
   "http://127.0.0.1:4173",
   "http://localhost:4173",
 ]);
-const OPENAI_GENERATION_IMPLEMENTED = false;
+const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
+const DEFAULT_OPENAI_MODEL = "gpt-5.6-luna";
+const OPENAI_TIMEOUT_MS = 25_000;
 const PLAN_LIMITS = { free: 0, light: 10, studio: 30, plus: 100 } as const;
 const BRAND_LIMITS = { free: 1, light: 3, studio: 3, plus: 3 } as const;
 
@@ -67,6 +71,10 @@ type EntitlementRow = {
   plan?: unknown;
   period_start?: unknown;
   period_end?: unknown;
+};
+type OpenAIResponsesPayload = {
+  output_text?: unknown;
+  output?: unknown;
 };
 
 Deno.serve(handleRequest);
@@ -257,14 +265,18 @@ async function generateWithConfiguredProvider(
   if (config.provider !== "openai" || config.mode !== "live") {
     throw httpError(503, "AI 생성 공급자가 아직 연결되지 않았습니다.");
   }
-  buildProviderInput(payload);
-  throw httpError(503, "OpenAI 생성 연결은 아직 활성화되지 않았습니다.");
+  const response = await callOpenAIResponses(payload);
+  const text = extractOpenAIOutputText(response);
+  const pack = parseOpenAIContentPack(text);
+  assertContentPackShape(pack);
+  assertSchedulePolicy(pack, payload.brief.includeSchedule);
+  return pack;
 }
 
 function readProviderConfig(): ProviderConfig {
   const provider = (Deno.env.get("MOA_AI_PROVIDER") ?? "").trim().toLowerCase();
   const key = (Deno.env.get("OPENAI_API_KEY") ?? "").trim();
-  if (OPENAI_GENERATION_IMPLEMENTED && provider === "openai" && key) {
+  if (provider === "openai" && key) {
     return { configured: true, provider: "openai", mode: "live" };
   }
   return { configured: false, provider: "openai", mode: "template" };
@@ -276,6 +288,124 @@ function readProviderStatus(): ProviderStatus {
     imageEditingConfigured: false,
     imageEditingReason: "image_editing_provider_unavailable",
   };
+}
+
+async function callOpenAIResponses(
+  payload: GenerateRequest,
+): Promise<OpenAIResponsesPayload> {
+  const providerInput = buildProviderInput(payload);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
+  try {
+    const response = await fetch(OPENAI_RESPONSES_URL, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        Authorization: `Bearer ${requiredEnv("OPENAI_API_KEY")}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: readOpenAIModel(),
+        input: [{
+          role: "user",
+          content: [
+            {
+              type: "input_text",
+              text: [
+                providerInput.system.join("\n"),
+                "Create exactly three card objects.",
+                payload.brief.includeSchedule
+                  ? "Create exactly three schedule items. Use YYYY-MM-DD dates when scheduleStartDate is present."
+                  : "Return schedule as an empty array because scheduling was not requested.",
+                JSON.stringify({
+                  brand: providerInput.brand,
+                  brief: providerInput.brief,
+                  images: providerInput.images.map((image) => ({
+                    id: image.id,
+                    name: image.name,
+                  })),
+                }),
+              ].join("\n"),
+            },
+            ...providerInput.images.map((image) => ({
+              type: "input_image",
+              image_url: image.dataUrl,
+              detail: "auto",
+            })),
+          ],
+        }],
+        text: {
+          format: {
+            type: "json_schema",
+            name: "moa_content_pack",
+            strict: true,
+            schema: contentPackJsonSchema,
+          },
+        },
+      }),
+    });
+    if (!response.ok) {
+      throw httpError(502, "OpenAI 생성 요청이 실패했습니다.");
+    }
+    return await response.json() as OpenAIResponsesPayload;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw httpError(504, "OpenAI 생성 응답 시간이 초과되었습니다.");
+    }
+    if (error instanceof HttpError || error instanceof MoaInputError) {
+      throw error;
+    }
+    throw httpError(502, "OpenAI 생성 응답을 처리하지 못했습니다.");
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function readOpenAIModel() {
+  return (Deno.env.get("MOA_AI_MODEL") ?? "").trim() || DEFAULT_OPENAI_MODEL;
+}
+
+function extractOpenAIOutputText(payload: OpenAIResponsesPayload) {
+  if (typeof payload.output_text === "string" && payload.output_text.trim()) {
+    return payload.output_text;
+  }
+  const chunks: string[] = [];
+  if (Array.isArray(payload.output)) {
+    for (const item of payload.output) {
+      if (!item || typeof item !== "object" || Array.isArray(item)) continue;
+      const content = (item as Record<string, unknown>).content;
+      if (!Array.isArray(content)) continue;
+      for (const entry of content) {
+        if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+          continue;
+        }
+        const text = (entry as Record<string, unknown>).text;
+        if (typeof text === "string") chunks.push(text);
+      }
+    }
+  }
+  if (!chunks.length) throw httpError(502, "OpenAI 응답에 콘텐츠가 없습니다.");
+  return chunks.join("\n");
+}
+
+function parseOpenAIContentPack(text: string): ContentPack {
+  try {
+    return JSON.parse(text) as ContentPack;
+  } catch {
+    throw httpError(502, "OpenAI가 올바른 JSON 콘텐츠를 반환하지 않았습니다.");
+  }
+}
+
+function assertSchedulePolicy(pack: ContentPack, includeSchedule: boolean) {
+  const expected = includeSchedule ? 3 : 0;
+  if (pack.schedule.length !== expected) {
+    throw httpError(
+      502,
+      includeSchedule
+        ? "AI 일정은 정확히 3개여야 합니다."
+        : "AI 일정은 요청하지 않았을 때 비어 있어야 합니다.",
+    );
+  }
 }
 
 function parsePhotoEditPayload(payload: unknown): PhotoEditRequest {
@@ -302,7 +432,10 @@ function parsePhotoEditPayload(payload: unknown): PhotoEditRequest {
 function parsePhotoEditImage(photo: Record<string, unknown>) {
   const dataUrl = typeof photo.dataUrl === "string" ? photo.dataUrl.trim() : "";
   if (!DATA_URL_RE.test(dataUrl)) {
-    throw httpError(400, "사진은 PNG, JPG, WEBP data URL만 사용할 수 있습니다.");
+    throw httpError(
+      400,
+      "사진은 PNG, JPG, WEBP data URL만 사용할 수 있습니다.",
+    );
   }
   if (byteLength(dataUrl) > 8 * 1024 * 1024) {
     throw httpError(413, "사진 data URL은 8MB 이하여야 합니다.");

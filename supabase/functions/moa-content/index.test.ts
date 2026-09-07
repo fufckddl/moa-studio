@@ -30,6 +30,17 @@ Deno.test("provider contract allows an empty schedule when includeSchedule is fa
   const scheduleSchema = contentPackJsonSchema.properties.schedule;
   equal("minItems" in scheduleSchema, false);
   equal("maxItems" in scheduleSchema, false);
+
+  assertContentPackShape({
+    ...pack,
+    schedule: [{
+      day: "월요일",
+      date: null,
+      title: "첫 소개",
+      format: "카드뉴스",
+      description: "소개합니다.",
+    }],
+  });
 });
 
 Deno.test("moa-content status and template generation stay local when provider is not configured", async () => {
@@ -147,11 +158,13 @@ Deno.test("moa-content entitlements use live paid orders and active monthly wind
       );
     }
     if (url.pathname === "/rest/v1/rpc/current_moa_ai_entitlement") {
-      return Promise.resolve(reply(entitlementPlan === "free" ? null : {
-        plan: entitlementPlan,
-        period_start: "2026-01-31T10:00:00.000Z",
-        period_end: "2026-02-28T10:00:00.000Z",
-      }));
+      return Promise.resolve(reply(
+        entitlementPlan === "free" ? null : {
+          plan: entitlementPlan,
+          period_start: "2026-01-31T10:00:00.000Z",
+          period_end: "2026-02-28T10:00:00.000Z",
+        },
+      ));
     }
     if (url.pathname === "/rest/v1/moa_ai_requests") {
       return Promise.resolve(reply(null, 200));
@@ -192,7 +205,6 @@ Deno.test("moa-content entitlements use live paid orders and active monthly wind
       equal(result.plan, plan);
       equal(result.brandLimit, plan === "free" ? 1 : 3);
     }
-
   } finally {
     globalThis.fetch = originalFetch;
     for (const [key, value] of originalEnv) {
@@ -201,7 +213,7 @@ Deno.test("moa-content entitlements use live paid orders and active monthly wind
   }
 });
 
-Deno.test("moa-content validates request ids, data URLs, and keeps template mode until provider adapter exists", async () => {
+Deno.test("moa-content validates request ids, data URLs, and calls OpenAI when configured", async () => {
   const owner = "7d8e8e69-d6b8-4dde-9bae-163ef7501529";
   const originalFetch = globalThis.fetch;
   const environment = {
@@ -223,16 +235,56 @@ Deno.test("moa-content validates request ids, data URLs, and keeps template mode
       status,
       headers: { "Content-Type": "application/json" },
     });
+  let reserved = false;
+  let succeeded = false;
+  let openAiBody: Record<string, unknown> | undefined;
   globalThis.fetch = ((input: string | URL | Request, init?: RequestInit) => {
     const url = new URL(input instanceof Request ? input.url : String(input));
-    if (url.hostname !== "moa-test.supabase.co") {
+    if (url.hostname === "moa-test.supabase.co") {
+      if (url.pathname === "/auth/v1/user") {
+        return Promise.resolve(
+          reply({
+            id: owner,
+            aud: "authenticated",
+            email: "qa@example.invalid",
+          }),
+        );
+      }
+      if (url.pathname === "/rest/v1/rpc/reserve_moa_ai_request") {
+        reserved = true;
+        return Promise.resolve(reply({
+          request_id: validPayload().requestId,
+          status: "reserved",
+          response: null,
+          plan: "light",
+          period_start: "2026-09-01T00:00:00.000Z",
+          period_end: "2026-10-01T00:00:00.000Z",
+        }));
+      }
+      if (url.pathname === "/rest/v1/rpc/succeed_moa_ai_request") {
+        succeeded = true;
+        return Promise.resolve(reply({
+          request_id: validPayload().requestId,
+          status: "succeeded",
+          response: sampleAiPack(),
+          plan: "light",
+          period_start: "2026-09-01T00:00:00.000Z",
+          period_end: "2026-10-01T00:00:00.000Z",
+        }));
+      }
       throw new Error(
-        `Unexpected network request: ${url.origin}${url.pathname}`,
+        `Unexpected Supabase request: ${url.origin}${url.pathname} ${
+          init?.body ?? ""
+        }`,
       );
     }
-    if (url.pathname === "/auth/v1/user") {
+    if (
+      url.origin === "https://api.openai.com" &&
+      url.pathname === "/v1/responses"
+    ) {
+      openAiBody = JSON.parse(String(init?.body));
       return Promise.resolve(
-        reply({ id: owner, aud: "authenticated", email: "qa@example.invalid" }),
+        reply({ output_text: JSON.stringify(sampleAiPack()) }),
       );
     }
     throw new Error(
@@ -259,15 +311,184 @@ Deno.test("moa-content validates request ids, data URLs, and keeps template mode
     equal(response.status, 400);
     response = await call("/generate", "POST", validPayload());
     equal(response.status, 200);
-    equal((await response.json()).source, "template");
+    const pack = await response.json();
+    equal(pack.source, "ai");
+    equal(pack.cards.length, 3);
+    equal(reserved, true);
+    equal(succeeded, true);
+    ok(openAiBody);
+    equal(openAiBody.model, "gpt-5.6-luna");
+    const input = openAiBody.input as Array<
+      { content: Array<Record<string, unknown>> }
+    >;
+    equal(input[0].content[1].image_url, validPayload().images[0].dataUrl);
     response = await call("/status", "GET", undefined, false);
     deepStrictEqual(await response.json(), {
-      configured: false,
+      configured: true,
       provider: "openai",
-      mode: "template",
+      mode: "live",
       imageEditingConfigured: false,
       imageEditingReason: "image_editing_provider_unavailable",
     });
+  } finally {
+    globalThis.fetch = originalFetch;
+    for (const [key, value] of originalEnv) {
+      value === undefined ? Deno.env.delete(key) : Deno.env.set(key, value);
+    }
+  }
+});
+
+Deno.test("moa-content refunds reserved quota when OpenAI fails or returns malformed content", async () => {
+  const owner = "7d8e8e69-d6b8-4dde-9bae-163ef7501529";
+  const originalFetch = globalThis.fetch;
+  const environment = {
+    SUPABASE_URL: "https://moa-test.supabase.co",
+    SUPABASE_ANON_KEY: "fake-anon-key-for-offline-test",
+    SUPABASE_SERVICE_ROLE_KEY: "fake-service-key-for-offline-test",
+    PUBLIC_APP_URL: "https://moa.example.com",
+    MOA_AI_PROVIDER: "openai",
+    OPENAI_API_KEY: "sk-test-not-used",
+  };
+  const originalEnv = new Map(
+    Object.keys(environment).map((key) => [key, Deno.env.get(key)]),
+  );
+  for (const [key, value] of Object.entries(environment)) {
+    Deno.env.set(key, value);
+  }
+
+  const reply = (value: unknown, status = 200) =>
+    new Response(JSON.stringify(value), {
+      status,
+      headers: { "Content-Type": "application/json" },
+    });
+  let openAiMode: "http_error" | "malformed" = "http_error";
+  let failedCalls = 0;
+  globalThis.fetch = ((input: string | URL | Request, init?: RequestInit) => {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    if (url.hostname === "moa-test.supabase.co") {
+      if (url.pathname === "/auth/v1/user") {
+        return Promise.resolve(
+          reply({
+            id: owner,
+            aud: "authenticated",
+            email: "qa@example.invalid",
+          }),
+        );
+      }
+      if (url.pathname === "/rest/v1/rpc/reserve_moa_ai_request") {
+        return Promise.resolve(reply({
+          request_id: validPayload().requestId,
+          status: "reserved",
+          response: null,
+          plan: "light",
+          period_start: "2026-09-01T00:00:00.000Z",
+          period_end: "2026-10-01T00:00:00.000Z",
+        }));
+      }
+      if (url.pathname === "/rest/v1/rpc/fail_moa_ai_request") {
+        failedCalls++;
+        return Promise.resolve(reply({
+          request_id: validPayload().requestId,
+          status: "failed",
+        }));
+      }
+      if (url.pathname === "/rest/v1/rpc/succeed_moa_ai_request") {
+        throw new Error("malformed OpenAI output must not be marked succeeded");
+      }
+    }
+    if (
+      url.origin === "https://api.openai.com" &&
+      url.pathname === "/v1/responses"
+    ) {
+      if (openAiMode === "http_error") {
+        return Promise.resolve(reply({ error: "bad" }, 500));
+      }
+      return Promise.resolve(
+        reply({
+          output_text: JSON.stringify({ ...sampleAiPack(), cards: [] }),
+        }),
+      );
+    }
+    throw new Error(
+      `Unexpected network request: ${url.origin}${url.pathname} ${
+        init?.body ?? ""
+      }`,
+    );
+  }) as typeof fetch;
+
+  try {
+    let response = await call("/generate", "POST", validPayload());
+    equal(response.status, 502);
+    equal(failedCalls, 1);
+
+    openAiMode = "malformed";
+    response = await call("/generate", "POST", {
+      ...validPayload(),
+      requestId: "7f2abf04-2604-4ff5-8930-f9d418c88f65",
+    });
+    equal(response.status, 502);
+    equal(failedCalls, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+    for (const [key, value] of originalEnv) {
+      value === undefined ? Deno.env.delete(key) : Deno.env.set(key, value);
+    }
+  }
+});
+
+Deno.test("moa-content replays an already succeeded AI request without charging or calling OpenAI again", async () => {
+  const owner = "7d8e8e69-d6b8-4dde-9bae-163ef7501529";
+  const originalFetch = globalThis.fetch;
+  const environment = {
+    SUPABASE_URL: "https://moa-test.supabase.co",
+    SUPABASE_ANON_KEY: "fake-anon-key-for-offline-test",
+    SUPABASE_SERVICE_ROLE_KEY: "fake-service-key-for-offline-test",
+    PUBLIC_APP_URL: "https://moa.example.com",
+    MOA_AI_PROVIDER: "openai",
+    OPENAI_API_KEY: "sk-test-not-used",
+  };
+  const originalEnv = new Map(
+    Object.keys(environment).map((key) => [key, Deno.env.get(key)]),
+  );
+  for (const [key, value] of Object.entries(environment)) {
+    Deno.env.set(key, value);
+  }
+
+  const reply = (value: unknown, status = 200) =>
+    new Response(JSON.stringify(value), {
+      status,
+      headers: { "Content-Type": "application/json" },
+    });
+  globalThis.fetch = ((input: string | URL | Request) => {
+    const url = new URL(input instanceof Request ? input.url : String(input));
+    if (url.hostname === "moa-test.supabase.co") {
+      if (url.pathname === "/auth/v1/user") {
+        return Promise.resolve(
+          reply({
+            id: owner,
+            aud: "authenticated",
+            email: "qa@example.invalid",
+          }),
+        );
+      }
+      if (url.pathname === "/rest/v1/rpc/reserve_moa_ai_request") {
+        return Promise.resolve(reply({
+          request_id: validPayload().requestId,
+          status: "succeeded",
+          response: sampleAiPack(),
+          plan: "light",
+          period_start: "2026-09-01T00:00:00.000Z",
+          period_end: "2026-10-01T00:00:00.000Z",
+        }));
+      }
+    }
+    throw new Error(`Unexpected network request: ${url.origin}${url.pathname}`);
+  }) as typeof fetch;
+
+  try {
+    const response = await call("/generate", "POST", validPayload());
+    equal(response.status, 200);
+    equal((await response.json()).source, "ai");
   } finally {
     globalThis.fetch = originalFetch;
     for (const [key, value] of originalEnv) {
@@ -429,5 +650,19 @@ function card(id: string, layout: "editorial" | "minimal" | "bold") {
     body: "부드러운 크림과 에스프레소의 조화",
     imageId: "photo-1",
     layout,
+  };
+}
+
+function sampleAiPack() {
+  return {
+    source: "ai",
+    cards: [
+      card("card-1", "editorial"),
+      card("card-2", "minimal"),
+      card("card-3", "bold"),
+    ],
+    caption: "카페 모아의 시그니처 크림 라떼를 소개합니다.",
+    hashtags: ["#카페모아", "#시그니처크림라떼"],
+    schedule: [],
   };
 }

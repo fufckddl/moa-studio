@@ -91,7 +91,9 @@ export function PaymentResult({ user, onLogin, onHome }: Props) {
     return <main className="payment-result payment-result-success"><span>PAYMENT COMPLETE</span><h1>{state.order.mode === 'test' ? '테스트 결제가 완료됐어요.' : '결제가 완료됐어요.'}</h1><p>{state.order.orderName} · {formatWon(state.order.amount)}원</p><PaymentMeta order={state.order} /><div className="payment-actions"><button onClick={onHome}>홈으로</button>{state.order.receiptUrl && <a href={state.order.receiptUrl} target="_blank" rel="noreferrer">영수증 보기</a>}</div></main>;
   }
 
-  return <main className="payment-result"><span>PAYMENT FAILED</span><h1>{state.title}</h1><p>{state.detail}</p>{state.order && <PaymentMeta order={state.order} />}<div className="payment-actions">{state.canRetry && <button onClick={() => setRetry(value => value + 1)}>다시 확인</button>}<button onClick={onHome}>홈으로 돌아가기</button></div></main>;
+  const canceled = state.order?.status === 'CANCELED';
+  const partiallyCanceled = state.order?.providerStatus === 'PARTIAL_CANCELED';
+  return <main className="payment-result"><span>{canceled ? 'PAYMENT CANCELED' : 'PAYMENT FAILED'}</span><h1>{canceled ? (partiallyCanceled ? '결제가 부분 취소됐어요.' : '결제가 취소됐어요.') : state.title}</h1><p>{canceled ? '토스에서 확인한 취소 상태가 반영됐어요. 자세한 환불 안내는 환불 정책에서 확인할 수 있어요.' : state.detail}</p>{state.order && <PaymentMeta order={state.order} />}<div className="payment-actions">{state.canRetry && !canceled && <button onClick={() => setRetry(value => value + 1)}>다시 확인</button>}{canceled && <a href="/refund/">환불 정책</a>}<button onClick={onHome}>홈으로 돌아가기</button></div></main>;
 }
 
 function PaymentMeta({ order }: { order: PaymentOrder }) {

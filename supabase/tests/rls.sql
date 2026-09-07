@@ -330,6 +330,62 @@ select pg_temp.expect_rejected(
    from moa_rls_subjects'
 );
 
+set local role service_role;
+insert into public.account_lifecycle_locks (user_id, action)
+select user_a, 'delete-account'
+from moa_rls_subjects;
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', user_a::text, true) from moa_rls_subjects;
+select set_config(
+  'request.jwt.claims',
+  jsonb_build_object('sub', user_a::text, 'role', 'authenticated')::text,
+  true
+)
+from moa_rls_subjects;
+
+select pg_temp.expect_rejected(
+  'locked account workspace update',
+  'update public.workspaces
+   set brand = ''{"name":"Locked"}''::jsonb
+   where user_id = (select user_a from moa_rls_subjects)'
+);
+
+select pg_temp.expect_rejected(
+  'locked account photo upload',
+  'insert into storage.objects (bucket_id, name, metadata)
+   select ''moa-photos'', user_a::text || ''/locked.jpg'', ''{"mimetype":"image/jpeg","size":128}''::jsonb
+   from moa_rls_subjects'
+);
+
+select pg_temp.expect_rejected(
+  'authenticated account lifecycle lock read',
+  'select * from public.account_lifecycle_locks'
+);
+
+set local role service_role;
+delete from public.account_lifecycle_locks
+where user_id = (select user_a from moa_rls_subjects);
+
+insert into public.account_payment_archive (payment_order_id, source_user_id, order_snapshot)
+select live_month_order, user_a, to_jsonb(po)
+from moa_rls_subjects
+join public.payment_orders po on po.id = live_month_order;
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', user_a::text, true) from moa_rls_subjects;
+select set_config(
+  'request.jwt.claims',
+  jsonb_build_object('sub', user_a::text, 'role', 'authenticated')::text,
+  true
+)
+from moa_rls_subjects;
+
+select pg_temp.expect_rejected(
+  'authenticated payment archive read',
+  'select * from public.account_payment_archive'
+);
+
 insert into public.photo_chat_history (user_id, conversation_id, messages)
 select user_a, 'photo-edit', '[
   { "role": "user", "content": "배경을 밝게 바꿔 줘" },

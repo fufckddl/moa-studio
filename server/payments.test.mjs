@@ -483,6 +483,99 @@ test('live order lookups sync canceled provider status and revoke membership', a
   assert.equal(history.payload.orders[0].status, 'CANCELED');
 });
 
+test('test order lookups sync matching-mode provider cancellations without granting membership', async () => {
+  let paymentKey = '';
+  let paidOrderId = '';
+  let providerLookups = 0;
+  const app = createApp({
+    config: TEST_CONFIG,
+    fetchImpl: async (url, init) => {
+      if (init.method === 'POST') {
+        const body = JSON.parse(init.body);
+        paymentKey = body.paymentKey;
+        return tossResponse({
+          paymentKey,
+          orderId: body.orderId,
+          status: 'DONE',
+          currency: 'KRW',
+          totalAmount: body.amount,
+        });
+      }
+      providerLookups += 1;
+      assert.equal(url, `https://api.tosspayments.com/v1/payments/${paymentKey}`);
+      return tossResponse({
+        paymentKey,
+        orderId: paidOrderId,
+        status: 'PARTIAL_CANCELED',
+        currency: 'KRW',
+        totalAmount: 7900,
+      });
+    },
+  });
+  const client = await signedInClient(app, 'canceled-test@example.test');
+  const order = await app.payment.handle(client.request('/api/payments/orders', { method: 'POST', body: { plan: 'studio', interval: 'month' } }));
+  paidOrderId = order.payload.orderId;
+  await app.payment.handle(
+    client.request('/api/payments/confirm', {
+      method: 'POST',
+      body: { orderId: paidOrderId, paymentKey: 'pay_test_cancel_sync_key', amount: order.payload.amount },
+    }),
+  );
+
+  const refreshed = await app.payment.handle(client.request(`/api/payments/orders/${paidOrderId}`, { method: 'GET' }));
+  const history = await app.payment.handle(client.request('/api/payments/orders', { method: 'GET' }));
+  const membership = await app.payment.handle(client.request('/api/payments/membership'));
+  app.close();
+
+  assert.equal(providerLookups, 1);
+  assert.equal(refreshed.payload.status, 'CANCELED');
+  assert.equal(refreshed.payload.providerStatus, 'PARTIAL_CANCELED');
+  assert.equal(history.payload.orders[0].status, 'CANCELED');
+  assert.equal(membership.payload.membership, null);
+});
+
+test('order lookups do not sync provider status across payment modes', async () => {
+  const auth = createAuthService({ dbPath: ':memory:', allowedOrigin: ORIGIN, scryptParams: TEST_SCRYPT });
+  const testPayment = createPaymentService({
+    auth,
+    allowedOrigin: ORIGIN,
+    config: TEST_CONFIG,
+    fetchImpl: async (_url, init) => {
+      const body = JSON.parse(init.body);
+      return tossResponse({
+        paymentKey: body.paymentKey,
+        orderId: body.orderId,
+        status: 'DONE',
+        currency: 'KRW',
+        totalAmount: body.amount,
+      });
+    },
+  });
+  const livePayment = createPaymentService({
+    auth,
+    allowedOrigin: ORIGIN,
+    config: LIVE_CONFIG,
+    fetchImpl: async () => {
+      throw new Error('provider lookup should not run for mismatched order mode');
+    },
+  });
+  const app = { auth, close: () => auth.close() };
+  const client = await signedInClient(app, 'cross-mode-sync@example.test');
+  const order = await testPayment.handle(client.request('/api/payments/orders', { method: 'POST', body: { plan: 'studio', interval: 'month' } }));
+  await testPayment.handle(
+    client.request('/api/payments/confirm', {
+      method: 'POST',
+      body: { orderId: order.payload.orderId, paymentKey: 'pay_cross_mode_key', amount: order.payload.amount },
+    }),
+  );
+
+  const refreshed = await livePayment.handle(client.request(`/api/payments/orders/${order.payload.orderId}`, { method: 'GET' }));
+  auth.close();
+
+  assert.equal(refreshed.payload.status, 'PAID');
+  assert.equal(refreshed.payload.providerStatus, 'DONE');
+});
+
 test('webhook rechecks Toss and never grants pending orders from webhook body', async () => {
   let pendingOrderId = '';
   const app = createApp({

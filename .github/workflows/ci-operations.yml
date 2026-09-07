@@ -1,0 +1,75 @@
+name: CI Operations
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Build, test, and cloud checks
+    runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_PHOTO_EDIT_API_URL: ${{ vars.VITE_PHOTO_EDIT_API_URL }}
+      VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.9.6
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check cloud public configuration
+        shell: bash
+        run: |
+          missing=0
+          for name in VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error title=Missing CI configuration::$name must be set as a GitHub Actions variable or secret."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Write cloud build env
+        run: |
+          {
+            printf 'VITE_SUPABASE_URL=%s\n' "$VITE_SUPABASE_URL"
+            printf 'VITE_SUPABASE_PUBLISHABLE_KEY=%s\n' "$VITE_SUPABASE_PUBLISHABLE_KEY"
+            printf 'VITE_PHOTO_EDIT_API_URL=%s\n' "$VITE_PHOTO_EDIT_API_URL"
+            printf 'VITE_TURNSTILE_SITE_KEY=%s\n' "$VITE_TURNSTILE_SITE_KEY"
+          } > .env.production.local
+          chmod 600 .env.production.local
+
+      - name: Run Node tests
+        run: npm test
+
+      - name: Run Edge Function tests
+        run: npm run test:cloud
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build web app
+        run: npm run build
+
+      - name: Check deployable cloud bundle
+        run: npm run check:cloud

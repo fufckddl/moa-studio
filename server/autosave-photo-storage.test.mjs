@@ -24,7 +24,7 @@ test('autosaving text reuses uploaded photo bytes while changed photos and accou
   globalThis.__autosavePhotoClient = client;
   t.after(() => { delete globalThis.__autosavePhotoClient; });
   const source = readFileSync(new URL('../src/lib/auth.ts', import.meta.url), 'utf8')
-    .replace("import { getSupabaseClient, isCloudConfigured } from './supabase';", 'const getSupabaseClient = () => globalThis.__autosavePhotoClient; const isCloudConfigured = true;');
+    .replace("import { getAccessToken, getSupabaseClient, isCloudConfigured } from './supabase';", 'const getSupabaseClient = () => globalThis.__autosavePhotoClient; const isCloudConfigured = true;');
   const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } });
   const { putWorkspace, logout } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
   const workspace = { brand: null, projects: [{ id: 'project-1', name: 'first', photos: [{ id: 'photo-1', name: 'photo.png', dataUrl: 'data:image/png;base64,YQ==' }] }] };

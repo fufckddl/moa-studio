@@ -1,8 +1,8 @@
 import type { User } from './auth';
 import { getAccessToken, isCloudConfigured, supabasePublishableKey, supabaseUrl } from './supabase';
+import { expectedAmount, formatWon, type PaymentInterval, type PaymentPlan } from './planPricing';
 
-export type PaymentPlan = 'light' | 'studio' | 'plus';
-export type PaymentInterval = 'month' | 'year';
+export type { PaymentInterval, PaymentPlan };
 export type PaymentMode = 'test' | 'live' | 'disabled';
 
 export interface PaymentConfig {
@@ -51,6 +51,7 @@ interface TossPayment {
 
 interface TossPaymentRequest {
   method: 'CARD';
+  sandbox?: { paymentResult: 'SUCCESS' };
   amount: { currency: 'KRW'; value: number };
   orderId: string;
   orderName: string;
@@ -96,10 +97,6 @@ function readError(value: unknown) {
   return '요청을 처리하지 못했어요. 다시 시도해 주세요.';
 }
 
-export function formatWon(value: number) {
-  return new Intl.NumberFormat('ko-KR').format(value);
-}
-
 export function planLabel(plan: PaymentPlan) {
   return plan === 'light' ? '라이트' : plan === 'studio' ? '스탠다드' : '프로';
 }
@@ -108,11 +105,7 @@ export function intervalLabel(interval: PaymentInterval) {
   return interval === 'year' ? '연간' : '월간';
 }
 
-export function expectedAmount(plan: PaymentPlan, interval: PaymentInterval) {
-  if (plan === 'light') return interval === 'year' ? 42000 : 3900;
-  if (plan === 'studio') return interval === 'year' ? 85000 : 7900;
-  return interval === 'year' ? 139000 : 12900;
-}
+export { expectedAmount, formatWon };
 
 export const getPaymentConfig = () => request<PaymentConfig>('/payments/config');
 
@@ -139,6 +132,9 @@ export async function requestTossPayment(order: CheckoutOrder) {
     orderName: order.orderName,
     successUrl: order.successUrl,
     failUrl: order.failUrl,
+    ...(order.mode === 'test' && order.clientKey.startsWith('test_')
+      ? { sandbox: { paymentResult: 'SUCCESS' as const } }
+      : {}),
   });
 }
 

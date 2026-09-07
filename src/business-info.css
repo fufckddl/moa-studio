@@ -3,6 +3,8 @@
 .business-info dl > div { display: flex; gap: 8px; }
 .business-info dt { opacity: .7; }
 .business-info dd { margin: 0; }
+.business-info a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+.business-info nav { display: flex; flex-wrap: wrap; gap: 8px 18px; margin: 0 0 12px; }
 .business-info small { font-size: 10px; opacity: .7; }
 .landing-footer { flex-wrap: wrap; row-gap: 28px; }
 .landing-footer .business-info { flex-basis: 100%; color: #d5d9c9; }

@@ -55,6 +55,26 @@
 .landing-footer { display: flex; align-items: center; justify-content: space-between; max-width: 1500px; margin: 80px auto 0; padding-top: 30px; border-top: 1px solid #81927c; }
 .landing-footer .landing-logo { font-size: 27px; }
 .landing-footer p { color: #d5d9c9; font-size: 12px; }
+.public-page { min-height: 100vh; background: #f6f3ed; }
+.public-header { background: #233c30; color: #faf6eb; }
+.public-hero { padding: 94px 6.6% 80px; background: #233c30; color: #faf6eb; }
+.public-hero .landing-index { margin-bottom: 34px; color: #d5d9c9; }
+.public-hero .landing-index span { font-size: 18px; text-transform: uppercase; letter-spacing: .16em; }
+.public-hero h1 { max-width: 1040px; margin: 0; font-size: clamp(38px, 4.7vw, 72px); line-height: 1.45; letter-spacing: 0; }
+.public-hero > p:last-child { max-width: 800px; margin: 36px 0 0; color: #d5d9c9; font-size: clamp(15px, 1.25vw, 18px); line-height: 2; word-break: keep-all; }
+.public-content { display: grid; gap: 0; max-width: 1120px; margin: 0 auto; padding: 86px 6.6%; }
+.public-section { display: grid; grid-template-columns: minmax(190px, .55fr) minmax(0, 1fr); gap: 48px; padding: 38px 0; border-top: 1px solid #c9cec2; }
+.public-section:last-child { border-bottom: 1px solid #c9cec2; }
+.public-section h2 { margin: 0; font-family: 'Noto Sans KR', system-ui, sans-serif; font-size: 20px; font-weight: 700; line-height: 1.6; letter-spacing: 0; }
+.public-section p { grid-column: 2; margin: 0; color: #465044; font-size: 15px; line-height: 2; word-break: keep-all; }
+.public-section p + p { margin-top: 15px; }
+.public-section ul { grid-column: 2; display: grid; gap: 12px; margin: 20px 0 0; padding: 0; list-style: none; }
+.public-section li { position: relative; padding-left: 18px; color: #586052; font-size: 14px; line-height: 1.85; word-break: keep-all; }
+.public-section li::before { content: ''; position: absolute; left: 0; top: .8em; width: 6px; height: 6px; background: #7b8773; }
+.public-related { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; padding: 0 6.6% 86px; }
+.public-related a { border: 1px solid #bfc7b7; padding: 12px 16px; font-size: 13px; color: #233c30; }
+.public-footer { max-width: none; margin: 0; padding: 34px 6.6%; background: #233c30; color: #f7f0da; }
+.public-footer .business-info { color: #d5d9c9; }
 .mobile-break { display: none; }
 .landing [data-reveal] { opacity: 0; transform: translateY(26px); }
 .landing .is-revealed { animation: landing-reveal 800ms cubic-bezier(.2,.7,.2,1) both; }
@@ -117,6 +137,21 @@
   .landing-start-link { width: 100%; padding: 23px; font-size: 14px; }
   .landing-footer { margin-top: 60px; align-items: flex-start; gap: 20px; flex-direction: column; }
   .landing-footer p { margin: 0; font-size: 11px; }
+  .public-header nav a:nth-child(1),
+  .public-header nav a:nth-child(2) { display: none; }
+  .public-hero { padding: 64px 26px 58px; }
+  .public-hero h1 { font-size: 34px; line-height: 1.55; }
+  .public-hero > p:last-child { margin-top: 24px; font-size: 13px; line-height: 2; }
+  .public-content { padding: 44px 26px 64px; }
+  .public-section { grid-template-columns: 1fr; gap: 18px; padding: 28px 0; }
+  .public-section p,
+  .public-section ul { grid-column: 1; }
+  .public-section h2 { font-size: 18px; }
+  .public-section p { font-size: 13px; }
+  .public-section li { font-size: 12px; }
+  .public-related { justify-content: flex-start; padding: 0 26px 58px; }
+  .public-related a { flex: 1 1 auto; text-align: center; }
+  .public-footer { padding: 30px 26px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .landing [data-reveal] { opacity: 1; transform: none; }
