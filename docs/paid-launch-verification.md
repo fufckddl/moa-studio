@@ -26,12 +26,23 @@ final live verification pass.
   the Toss test API, and the deployed `moa-payments` v12 synchronized `CANCELED`
   on order lookup without manual DB status updates. Test payments never grant
   live membership. The UI now explicitly displays cancellation and refund help.
-- Real OpenAI Responses generation is still blocked. The latest probe returned
-  `403 restricted_key_missing_scopes` for `api.responses.write`; no successful
-  paid AI real generation has been verified.
+- The restricted OpenAI key now has Responses and Images write permissions.
+  A direct Responses call with `gpt-5.6-luna`, image input, and strict JSON
+  schema output returned `200`, and the deployed `moa-content` status reports
+  `configured: true`, `provider: openai`, and `mode: live`.
+- A temporary paid Light QA entitlement verified real AI generation, usage
+  decrement from 10 to 9, idempotent duplicate response without another usage
+  decrement, failed-provider recovery without usage loss, and `402` rejection
+  for a free account. Temporary Auth, order, and AI-request rows were removed.
+- The deployed photo-edit Worker also completed a real `gpt-image-2` edit and
+  returned a valid JPEG. The temporary free-trial quota moved from 3 to 2.
+- `MOA_AI_READY=1` is now set. `TOSS_LIVE_ENABLED=0` and
+  `PAID_FEATURES_READY=0` remain disabled pending backup/restore readiness and
+  the final live-payment decision.
 - Final local tests: 159 passed. Edge Function tests: 14 passed. Typecheck,
   build, cloud bundle/secret checks, and rollback-only paid AI SQL checks passed.
-  Paid launch remains blocked on real OpenAI generation and the operational gates.
+  Paid launch remains blocked on backup/restore readiness and the remaining
+  operational gates.
 
 ## Current Prices
 

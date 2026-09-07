@@ -21,8 +21,8 @@
 - Turnstile is created and server auth protection is enabled. UI login QA passes, and a no-token password login returns `400 captcha_failed`.
 - UI QA passed for free generation, autosave, reload, `1080x1350` PNG export, and ZIP export with 3 cards, caption, and schedule.
 - Account direct API erase/delete passed. After the `moa-account` v2 CORS fix, browser data erase passes: Auth account retained, workspace rows removed, lifecycle lock released. Password recovery link and new password submission also pass. Final browser account deletion passed: Auth, workspace, active order, and Storage counts reached zero; six canceled test orders were archived, then only those QA archives were cleaned up.
-- Live gates remain disabled: `TOSS_LIVE_ENABLED=0`, `PAID_FEATURES_READY=0`, and `MOA_AI_READY=0`.
-- Real OpenAI Responses generation has not passed. The latest real Responses probe returned `403 restricted_key_missing_scopes` for `api.responses.write`.
+- The AI gate is enabled with `MOA_AI_READY=1`. `TOSS_LIVE_ENABLED=0` and `PAID_FEATURES_READY=0` remain disabled, so live checkout is still unavailable.
+- OpenAI Responses and Images permissions now pass real provider calls. The deployed content function reports live OpenAI mode; paid Light generation, 10-to-9 usage decrement, idempotent duplicate handling, failed-request quota recovery, free-account rejection, and a real `gpt-image-2` photo edit all passed. Temporary QA Auth, order, and AI-request data was removed.
 - Backup scripts, workflows, and procedures exist, but `SUPABASE_DB_URL` and encrypted external backup destination credentials are not configured. No real backup or restore has run yet.
 - Final local tests: 159 passed; Edge Function tests: 14 passed. Typecheck, production build, cloud bundle/secret checks, and rollback-only paid AI SQL validation passed. All six Toss test price/period combinations were approved, then canceled and synchronized through the deployed function without manual DB status updates.
 
