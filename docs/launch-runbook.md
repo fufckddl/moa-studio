@@ -24,6 +24,19 @@
 - The AI gate is enabled with `MOA_AI_READY=1`. `TOSS_LIVE_ENABLED=0` and `PAID_FEATURES_READY=0` remain disabled, so live checkout is still unavailable.
 - OpenAI Responses and Images permissions now pass real provider calls. The deployed content function reports live OpenAI mode; paid Light generation, 10-to-9 usage decrement, idempotent duplicate handling, failed-request quota recovery, free-account rejection, and a real `gpt-image-2` photo edit all passed. Temporary QA Auth, order, and AI-request data was removed.
 - Backup scripts, workflows, and procedures exist, but `SUPABASE_DB_URL` and encrypted external backup destination credentials are not configured. No real backup or restore has run yet.
+- Supabase's own scheduled backups are unavailable on the current Free plan.
+  The database password is not stored locally and Supabase only offers a reset,
+  which would invalidate existing direct database connections. GitHub has no
+  backup secrets configured, so the custom encrypted backup cannot run yet.
+- Operational checks outside search and payments pass: both Storage buckets are
+  private (`moa-photos` 10 objects, `moa-people` 1 object), an unauthenticated
+  public object request is rejected, and a signed URL downloads the sampled
+  object successfully. Brevo shows the production confirmation email progressing
+  through sent, delivered, opened, and clicked states.
+- A fresh production build and `npm run check:cloud` pass, including the public
+  bundle secret scan. No OpenAI, Supabase secret/service-role, Toss secret,
+  database credential, or backup passphrase pattern was found in `dist` or the
+  recorded launch logs.
 - Final local tests: 159 passed; Edge Function tests: 14 passed. Typecheck, production build, cloud bundle/secret checks, and rollback-only paid AI SQL validation passed. All six Toss test price/period combinations were approved, then canceled and synchronized through the deployed function without manual DB status updates.
 
 ## 출시 전 필수 Secret과 Variable
