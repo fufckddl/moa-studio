@@ -13,6 +13,24 @@
 
 ## 2026-09-07 출시 상태
 
+### 2026-09-08 운영 전환 확인
+
+- 사용자가 외부 무료 백업 연결과 실결제 활성화를 요청했습니다. Backblaze B2의
+  첫 10GB 무료 저장소와 현재 백업의 용량 적합성을 다시 확인했습니다. 가입 및
+  로그인 단계에서 아직 계정 접근을 완료하지 못해 버킷과 저장소 키는 미연결입니다.
+- Cloudflare R2도 확인했으나 아직 구독이 없으며, 시작 화면은 무료 한도 초과 시
+  사용량 과금 및 자동 갱신 동의를 요구합니다. R2 구독은 추가하지 않았습니다.
+- 토스에 로그인해 확인한 현재 테스트 상점 `link_tobuyw5ix`의 상태는 **심사중**,
+  결제방식은 **링크페이**, 계약일은 미표시입니다. 일부 카드사 심사 승인 표시는
+  있으나 전체 상점 계약 완료와 동일하지 않습니다. 전체상점 홈도 심사중이며
+  등록 연락처로 심사 결과를 알린다고 표시합니다.
+- 별도 빌링 상점의 계약 완료를 이 앱의 일반 결제 승인으로 대신하지 않았습니다.
+  라이브 키 및 운영 결제 설정은 변경하지 않았고, 운영 API는 여전히 `mode: test`
+  입니다. 자세한 내용은 [유료 출시 검증](paid-launch-verification.md)을 참고하세요.
+- 사용자는 Google에 색인 완료가 표시됐다고 알렸고, 검색 설정은 다음 날까지
+  그대로 두기로 했습니다. 2026-09-09 오전 10시 KST에 Google·네이버 상태를
+  한 번 확인하도록 예약했습니다. 이 기록은 검색 노출의 독립 검증을 뜻하지 않습니다.
+
 - Public domain remains `https://moa-studio.pages.dev`. No custom domain or 301 redirect is planned for this launch.
 - GitHub baseline `d7426f8` is on the remote and tagged `v0.1.0-verified-baseline`.
 - Current Cloudflare Pages deployment is `6fe6043e.moa-studio.pages.dev`, aliased to production.

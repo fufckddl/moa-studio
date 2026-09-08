@@ -4,6 +4,32 @@ Live paid checkout stays disabled until all gates below are complete. Keep
 `TOSS_LIVE_ENABLED=0` and `PAID_FEATURES_READY=0` until the final live
 verification pass. `MOA_AI_READY=1` has passed real provider verification.
 
+## 2026-09-08 Status
+
+- The user authorized live-payment activation. The current blocker is merchant
+  approval: the Toss dashboard shows the currently tested Softbuild Linkpay
+  merchant as `심사중`, with no contract date. The live API tab is visible, but
+  its banner says transactions are unavailable until the contract is complete.
+  The dashboard says the registered contact will be notified of the result.
+- A separate billing merchant shows a completed contract. That is a distinct
+  service and does not establish approval for this one-time checkout integration;
+  its keys were not substituted for the tested merchant's keys.
+- No live keys were copied or exposed, and no production payment secrets were
+  changed. `TOSS_LIVE_ENABLED=0` and `PAID_FEATURES_READY=0` remain in place;
+  `MOA_AI_READY=1` remains enabled. A fresh public API check returned
+  `configured: true`, `mode: test` for `moa-payments/config`, and
+  `configured: true`, `provider: openai`, `mode: live` for `moa-content/status`.
+- Encrypted local backup and an actual isolated local Supabase restore drill
+  are complete: all backed-up column values in 30 tables and all 11 Storage file
+  hashes matched; login, ownership, and rollback SQL checks passed. See
+  [the restore drill record](restore-drill-2026-09-08.md). External scheduled
+  backup storage remains unconnected. The local restore does not establish a
+  completed hosted-project migration or offsite backup readiness.
+- Existing test-payment and AI evidence below remains valid. Real live payment
+  approval, live refund, and the complete paid launch gate are not yet verified.
+  After merchant approval, verify the same merchant's standard live key pair,
+  remaining operational gates, and the live checkout/entitlement/refund flow.
+
 ## 2026-09-07 Status
 
 - Live checkout gates remain disabled: `TOSS_LIVE_ENABLED=0` and
