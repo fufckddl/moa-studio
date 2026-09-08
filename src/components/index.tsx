@@ -14,10 +14,6 @@ type PreviewView = 'cards' | 'caption' | 'schedule';
 export interface ShellProps {
   page: NavKey;
   brand: Brand;
-  saving: boolean;
-  readOnly?: boolean;
-  saved?: boolean;
-  saveStatus?: string;
   children: ReactNode;
   accountControl?: ReactNode;
   onNavigate: (nav: NavKey) => void;
@@ -101,7 +97,7 @@ function Icon({ name }: { name: IconName }) {
   return <svg aria-hidden="true" {...common}>{paths[name]}</svg>;
 }
 
-export function Shell({ page, brand, saving, readOnly = false, saveStatus = '', children, onNavigate, onHome, accountControl }: ShellProps) {
+export function Shell({ page, brand, children, onNavigate, onHome, accountControl }: ShellProps) {
   return (
     <div className="app-shell">
       <header className="sidebar studio-header" aria-label="주 메뉴">
@@ -132,14 +128,6 @@ export function Shell({ page, brand, saving, readOnly = false, saveStatus = '', 
         <header className="topbar" aria-label="현재 작업">
           <div className="breadcrumb">workspace <span>/</span> {navItems.find((item) => item.key === page)?.label}</div>
         </header>
-        {page === 'editor' ? (
-          <div className="shell-save-row">
-            <p className="autosave-status" role="status" aria-busy={saving && !readOnly}>
-              <Icon name="save" />
-              <span>{saveStatus}</span>
-            </p>
-          </div>
-        ) : null}
         {children}
         <footer className="studio-business-footer"><BusinessInfo /></footer>
       </main>

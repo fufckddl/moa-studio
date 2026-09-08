@@ -72,7 +72,6 @@
 .main-surface:has(.photo-chat-panel:not([hidden])) .preview-panel { grid-column: auto; grid-row: auto; order: 1; }
 .main-surface:has(.photo-chat-panel:not([hidden])) .brief-panel { grid-column: auto; grid-row: auto; order: 2; }
 .main-surface:has(.photo-chat-panel:not([hidden])) .page-intro h1 { max-width: 100%; font-size: clamp(24px, 2.5vw, 34px); }
-.main-surface:has(.photo-chat-panel:not([hidden])) .shell-save-row { position: static; padding: 18px 36px 0; }
 .main-surface:has(.photo-chat-panel:not([hidden])) .canvas-frame { width: min(420px, 100%); max-width: 100%; }
 .photo-chat-resize { position: absolute; left: -6px; top: 0; bottom: 0; width: 12px; z-index: 2; cursor: col-resize; touch-action: none; outline: none; }
 .photo-chat-resize::before { content: ''; position: absolute; inset: 0 4px; background: transparent; transition: background 120ms; }

@@ -163,35 +163,7 @@
   border: 0;
 }
 
-.shell-save-row {
-  position: absolute;
-  top: 44px;
-  right: 36px;
-  z-index: 5;
-  display: flex;
-  justify-content: flex-end;
-  pointer-events: none;
-}
 
-.autosave-status {
-  min-height: 38px;
-  margin: 0;
-  padding: 0 14px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid rgba(35, 60, 48, 0.16);
-  background: rgba(255, 255, 255, 0.72);
-  color: rgba(35, 60, 48, 0.72);
-  font-size: 12px;
-  line-height: 1;
-  pointer-events: auto;
-}
-
-.autosave-status svg {
-  width: 16px;
-  height: 16px;
-}
 
 .page-intro {
   padding: 34px 36px 28px;
@@ -569,15 +541,7 @@
 
   .studio-cafe-card { display: none; }
 
-  .shell-save-row {
-    position: static;
-    padding: 18px 20px 0;
-  }
 
-  .autosave-status {
-    width: 100%;
-    justify-content: center;
-  }
 
   .page-intro {
     padding: 24px 20px 20px;
@@ -635,7 +599,6 @@
     font-size: 12px;
   }
 
-  .shell-save-row,
   .page-intro,
   .workbench {
     padding-left: 14px;
