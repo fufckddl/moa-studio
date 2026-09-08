@@ -811,6 +811,13 @@
 
 /* Compact mobile controls without changing the exported card typography. */
 @media (max-width: 800px) {
+  .app-shell .editor-tutorial-replay, .app-shell .photo-chat-tab {
+    top: auto;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    height: 38px;
+    min-height: 38px;
+    padding-block: 0;
+  }
   .app-shell header.studio-header { padding: 10px 12px 0; gap: 0 8px; }
   .app-shell .studio-header .brand-mark strong { font-size: 24px; }
   .app-shell .studio-header .brand-mark span { font-size: 13px; }
