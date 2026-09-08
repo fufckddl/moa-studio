@@ -28,20 +28,6 @@ type ViewportRect = {
   height: number;
 };
 
-type DialogPlacement = {
-  top?: number;
-  right?: number;
-  bottom?: number;
-  left?: number;
-  width?: number;
-  maxHeight?: number;
-};
-
-type DialogSize = {
-  width: number;
-  height: number;
-};
-
 export interface EditorTutorialProps {
   userId: string | null;
   suspended?: boolean;
@@ -49,9 +35,10 @@ export interface EditorTutorialProps {
 
 const TARGET_PADDING = 8;
 const VIEWPORT_GAP = 16;
-const POPOVER_GAP = 14;
 const POPOVER_WIDTH = 360;
-const INITIAL_POPOVER_HEIGHT = 246;
+const MOBILE_BREAKPOINT = 800;
+const DOCK_GAP = 16;
+const DOCK_HEIGHT = 270;
 const HIGHLIGHT_RADIUS = 20;
 
 const steps: TutorialStep[] = [
@@ -159,6 +146,32 @@ function viewportRect(): ViewportRect {
   };
 }
 
+function dockRect(viewport: ViewportRect = viewportRect()) {
+  const mobile = viewport.width <= MOBILE_BREAKPOINT;
+  const left = viewport.left + DOCK_GAP;
+  const width = mobile
+    ? Math.max(0, viewport.width - DOCK_GAP * 2)
+    : Math.min(POPOVER_WIDTH, Math.max(0, viewport.width - DOCK_GAP * 2));
+  const height = clamp(
+    Math.min(DOCK_HEIGHT, viewport.height * 0.45),
+    Math.min(120, Math.max(0, viewport.height - DOCK_GAP * 2)),
+    Math.max(0, viewport.height - DOCK_GAP * 2),
+  );
+  const top = viewport.bottom - DOCK_GAP - height;
+  return {
+    top,
+    right: left + width,
+    bottom: viewport.bottom - DOCK_GAP,
+    left,
+    width,
+    height,
+  };
+}
+
+function overlapsHorizontally(left: number, right: number, rect: { left: number; right: number }) {
+  return Math.min(right, rect.right) - Math.max(left, rect.left) > 0;
+}
+
 function stickyHeaderBottom() {
   const viewport = viewportRect();
   if (viewport.width > 980) return viewport.top;
@@ -188,8 +201,13 @@ function targetRect(element: HTMLElement): TargetRect {
   const viewportWidth = viewport.width;
   const viewportHeight = viewport.height;
   const headerBottom = element.closest('.photo-chat-panel') ? viewport.top : stickyHeaderBottom();
-  let topBound = raw.top < headerBottom && raw.bottom > headerBottom ? headerBottom : viewport.top + VIEWPORT_GAP;
-  let bottomBound = Math.max(topBound, viewport.bottom - VIEWPORT_GAP);
+  const dock = dockRect(viewport);
+  const dockOverlapsTarget = overlapsHorizontally(raw.left - TARGET_PADDING, raw.right + TARGET_PADDING, dock);
+  const bottomLimit = dockOverlapsTarget ? dock.top - DOCK_GAP : viewport.bottom - VIEWPORT_GAP;
+  const headerWouldClip = raw.top < headerBottom && raw.bottom > headerBottom;
+  const headerTopBound = headerWouldClip ? headerBottom : viewport.top + VIEWPORT_GAP;
+  let topBound = bottomLimit - headerTopBound >= 48 ? headerTopBound : viewport.top + VIEWPORT_GAP;
+  let bottomBound = Math.max(topBound, bottomLimit);
   let leftBound = viewport.left + VIEWPORT_GAP;
   let rightBound = Math.max(leftBound, viewport.right - VIEWPORT_GAP);
   // Only reveal the part of a control that its scroll container actually displays.
@@ -205,7 +223,7 @@ function targetRect(element: HTMLElement): TargetRect {
       rightBound = Math.min(rightBound, bounds.right);
     }
   }
-  bottomBound = Math.max(topBound, bottomBound);
+  bottomBound = Math.max(topBound + 1, bottomBound);
   rightBound = Math.max(leftBound, rightBound);
   const left = clamp(raw.left - TARGET_PADDING, leftBound, rightBound);
   const right = clamp(raw.right + TARGET_PADDING, leftBound, rightBound);
@@ -235,17 +253,19 @@ function scrollableParent(element: HTMLElement) {
   return null;
 }
 
-function scrollTargetIntoView(element: HTMLElement, size: DialogSize) {
+function scrollTargetIntoView(element: HTMLElement) {
   const style = window.getComputedStyle(element);
   if (style.position === 'fixed' || style.position === 'sticky') return;
 
   const raw = element.getBoundingClientRect();
   const viewport = viewportRect();
+  const dock = dockRect(viewport);
+  const dockOverlapsTarget = overlapsHorizontally(raw.left - TARGET_PADDING, raw.right + TARGET_PADDING, dock);
   const scroller = scrollableParent(element);
   if (scroller) {
     const container = scroller.getBoundingClientRect();
     const top = container.top + VIEWPORT_GAP;
-    const bottom = container.bottom - VIEWPORT_GAP;
+    const bottom = Math.max(top, Math.min(container.bottom - VIEWPORT_GAP, dockOverlapsTarget ? dock.top - DOCK_GAP : viewport.bottom - VIEWPORT_GAP));
     const availableHeight = Math.max(0, bottom - top);
     const targetHeight = raw.height + TARGET_PADDING * 2;
     const desiredTop = targetHeight >= availableHeight
@@ -259,12 +279,9 @@ function scrollTargetIntoView(element: HTMLElement, size: DialogSize) {
   }
 
   const headerBottom = stickyHeaderBottom();
-  const dialogHeight = Math.min(size.height, viewport.height - VIEWPORT_GAP * 2);
-  const requiredSide = Math.min(POPOVER_WIDTH, viewport.width - VIEWPORT_GAP * 2) + POPOVER_GAP + VIEWPORT_GAP;
-  const hasSideRoom = raw.left - viewport.left >= requiredSide || viewport.right - raw.right >= requiredSide;
-  const mobileReserve = !hasSideRoom ? Math.min(dialogHeight, Math.max(96, viewport.height * 0.45)) + POPOVER_GAP : 0;
-  const top = Math.max(viewport.top + VIEWPORT_GAP + mobileReserve, headerBottom + VIEWPORT_GAP);
-  const bottom = Math.max(top, viewport.bottom - VIEWPORT_GAP);
+  const bottom = Math.max(viewport.top + VIEWPORT_GAP, dockOverlapsTarget ? dock.top - DOCK_GAP : viewport.bottom - VIEWPORT_GAP);
+  const headerTop = Math.max(viewport.top + VIEWPORT_GAP, headerBottom + VIEWPORT_GAP);
+  const top = bottom - headerTop >= 48 ? headerTop : viewport.top + VIEWPORT_GAP;
   const availableHeight = bottom - top;
   const targetHeight = raw.height + TARGET_PADDING * 2;
   const desiredTop = targetHeight >= availableHeight
@@ -282,78 +299,6 @@ function nextAvailableIndex(fromIndex: number, direction: 1 | -1) {
     if (findTarget(steps[index])) return index;
   }
   return -1;
-}
-
-function overlap(top: number, height: number, rect: TargetRect) {
-  const bottom = top + height;
-  return Math.max(0, Math.min(bottom, rect.bottom) - Math.max(top, rect.top));
-}
-
-function dialogPlacement(rect: TargetRect | null, size: DialogSize): DialogPlacement {
-  const viewport = viewportRect();
-  const viewportWidth = rect?.viewportWidth ?? viewport.width;
-  const viewportHeight = rect?.viewportHeight ?? viewport.height;
-  const viewportLeft = viewport.left;
-  const viewportTop = viewport.top;
-  const viewportRight = viewport.left + viewportWidth;
-  const viewportBottom = viewport.top + viewportHeight;
-  const width = Math.min(POPOVER_WIDTH, viewportWidth - VIEWPORT_GAP * 2);
-  const height = Math.min(size.height, viewportHeight - VIEWPORT_GAP * 2);
-
-  const hasSideRoom = rect && (viewportRight - rect.right >= width + POPOVER_GAP + VIEWPORT_GAP || rect.left - viewportLeft >= width + POPOVER_GAP + VIEWPORT_GAP);
-  if (!rect || !hasSideRoom) {
-    if (!rect) return { left: viewportLeft + VIEWPORT_GAP, width: viewportWidth - VIEWPORT_GAP * 2, bottom: VIEWPORT_GAP, maxHeight: viewportHeight - VIEWPORT_GAP * 2 };
-
-    const below = viewportBottom - VIEWPORT_GAP - rect.bottom - POPOVER_GAP;
-    const above = rect.top - POPOVER_GAP - viewportTop - VIEWPORT_GAP;
-    if (below >= Math.min(height, 96) && below >= above) {
-      return {
-        left: viewportLeft + VIEWPORT_GAP,
-        width: viewportWidth - VIEWPORT_GAP * 2,
-        top: rect.bottom + POPOVER_GAP,
-        maxHeight: Math.max(96, below),
-      };
-    }
-    if (above >= Math.min(height, 96)) {
-      return {
-        left: viewportLeft + VIEWPORT_GAP,
-        width: viewportWidth - VIEWPORT_GAP * 2,
-        top: Math.max(viewportTop + VIEWPORT_GAP, rect.top - POPOVER_GAP - height),
-        maxHeight: Math.max(96, above),
-      };
-    }
-
-    const topDock = viewportTop + VIEWPORT_GAP;
-    const bottomDock = viewportBottom - height - VIEWPORT_GAP;
-    return {
-      left: viewportLeft + VIEWPORT_GAP,
-      width: viewportWidth - VIEWPORT_GAP * 2,
-      top: overlap(topDock, height, rect) <= overlap(bottomDock, height, rect) ? topDock : bottomDock,
-      maxHeight: viewportHeight - VIEWPORT_GAP * 2,
-    };
-  }
-
-  const sideTop = clamp(rect.top, viewportTop + VIEWPORT_GAP, viewportBottom - height - VIEWPORT_GAP);
-  if (viewportRight - rect.right >= width + POPOVER_GAP + VIEWPORT_GAP) {
-    return { width, left: rect.right + POPOVER_GAP, top: sideTop, maxHeight: viewportHeight - VIEWPORT_GAP * 2 };
-  }
-  if (rect.left - viewportLeft >= width + POPOVER_GAP + VIEWPORT_GAP) {
-    return { width, left: rect.left - width - POPOVER_GAP, top: sideTop, maxHeight: viewportHeight - VIEWPORT_GAP * 2 };
-  }
-  if (rect.bottom + POPOVER_GAP + height <= viewportBottom - VIEWPORT_GAP) {
-    return {
-      width,
-      left: clamp(rect.left, viewportLeft + VIEWPORT_GAP, viewportRight - width - VIEWPORT_GAP),
-      top: rect.bottom + POPOVER_GAP,
-      maxHeight: viewportBottom - VIEWPORT_GAP - rect.bottom - POPOVER_GAP,
-    };
-  }
-  return {
-    width,
-    left: clamp(rect.left, viewportLeft + VIEWPORT_GAP, viewportRight - width - VIEWPORT_GAP),
-    top: clamp(rect.top - POPOVER_GAP - height, viewportTop + VIEWPORT_GAP, viewportBottom - height - VIEWPORT_GAP),
-    maxHeight: viewportHeight - VIEWPORT_GAP * 2,
-  };
 }
 
 function roundedRectPath(x: number, y: number, width: number, height: number, radius: number) {
@@ -395,8 +340,9 @@ export function EditorTutorial({ userId, suspended = false }: EditorTutorialProp
   const [open, setOpen] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [rect, setRect] = useState<TargetRect | null>(null);
-  const [dialogSize, setDialogSize] = useState<DialogSize>({ width: POPOVER_WIDTH, height: INITIAL_POPOVER_HEIGHT });
+  const [dock, setDock] = useState(() => dockRect());
   const dialogRef = useRef<HTMLDivElement>(null);
+  const copyRef = useRef<HTMLDivElement>(null);
   const replayRef = useRef<HTMLButtonElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
   const previousScroll = useRef({ left: 0, top: 0 });
@@ -404,7 +350,6 @@ export function EditorTutorial({ userId, suspended = false }: EditorTutorialProp
   const photoChatOpenRequested = useRef(false);
   const activeStep = steps[stepIndex] ?? steps[0];
   const visible = open && !suspended;
-  const placement = useMemo(() => dialogPlacement(rect, dialogSize), [dialogSize, rect]);
   const maskStyle = useMemo(() => overlayMask(rect), [rect]);
 
   useEffect(() => {
@@ -481,6 +426,38 @@ export function EditorTutorial({ userId, suspended = false }: EditorTutorialProp
   useEffect(() => {
     if (!visible) return undefined;
 
+    const updateDockContract = () => {
+      const nextDock = dockRect();
+      setDock((current) => (
+        Math.abs(current.left - nextDock.left) < 0.5
+        && Math.abs(current.top - nextDock.top) < 0.5
+        && Math.abs(current.width - nextDock.width) < 0.5
+        && Math.abs(current.height - nextDock.height) < 0.5
+          ? current
+          : nextDock
+      ));
+      document.documentElement.style.setProperty('--editor-tutorial-dock-height', `${Math.ceil(nextDock.height + DOCK_GAP)}px`);
+    };
+    updateDockContract();
+    document.documentElement.classList.add('editor-tutorial-active');
+    document.documentElement.dataset.editorTutorial = 'active';
+    window.addEventListener('resize', updateDockContract);
+    window.visualViewport?.addEventListener('resize', updateDockContract);
+
+    return () => {
+      window.removeEventListener('resize', updateDockContract);
+      window.visualViewport?.removeEventListener('resize', updateDockContract);
+      document.documentElement.classList.remove('editor-tutorial-active');
+      delete document.documentElement.dataset.editorTutorial;
+      document.documentElement.style.removeProperty('--editor-tutorial-dock-height');
+    };
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible) return undefined;
+
+    if (copyRef.current) copyRef.current.scrollTop = 0;
+
     const target = findTarget(activeStep);
     if (!target) {
       const next = nextAvailableIndex(stepIndex + 1, 1);
@@ -491,15 +468,15 @@ export function EditorTutorial({ userId, suspended = false }: EditorTutorialProp
       return undefined;
     }
 
-    scrollTargetIntoView(target, dialogSize);
+    scrollTargetIntoView(target);
     setRect(targetRect(target));
     const timeout = window.setTimeout(() => {
       const currentTarget = findTarget(activeStep);
-      if (currentTarget) { scrollTargetIntoView(currentTarget, dialogSize); setRect(targetRect(currentTarget)); }
+      if (currentTarget) { scrollTargetIntoView(currentTarget); setRect(targetRect(currentTarget)); }
     }, 320);
 
     return () => window.clearTimeout(timeout);
-  }, [activeStep, closeSession, dialogSize, stepIndex, visible]);
+  }, [activeStep, closeSession, stepIndex, visible]);
 
   useEffect(() => {
     if (!visible) return undefined;
@@ -518,7 +495,7 @@ export function EditorTutorial({ userId, suspended = false }: EditorTutorialProp
 
     const resize = () => {
       const target = findTarget(activeStep);
-      if (target) scrollTargetIntoView(target, dialogSize);
+      if (target) scrollTargetIntoView(target);
       scheduleUpdate();
     };
     update();
@@ -534,26 +511,7 @@ export function EditorTutorial({ userId, suspended = false }: EditorTutorialProp
       window.visualViewport?.removeEventListener('resize', resize);
       window.visualViewport?.removeEventListener('scroll', scheduleUpdate);
     };
-  }, [activeStep, dialogSize, visible]);
-
-  useEffect(() => {
-    if (!visible || !dialogRef.current) return undefined;
-
-    const updateSize = () => {
-      const bounds = dialogRef.current?.getBoundingClientRect();
-      if (!bounds) return;
-      setDialogSize((current) => {
-        if (Math.abs(current.width - bounds.width) < 0.5 && Math.abs(current.height - bounds.height) < 0.5) return current;
-        return { width: bounds.width, height: bounds.height };
-      });
-    };
-    updateSize();
-
-    if (!('ResizeObserver' in window)) return undefined;
-    const observer = new ResizeObserver(updateSize);
-    observer.observe(dialogRef.current);
-    return () => observer.disconnect();
-  }, [visible, stepIndex]);
+  }, [activeStep, visible]);
 
   useEffect(() => {
     if (!visible) return undefined;
@@ -654,15 +612,17 @@ export function EditorTutorial({ userId, suspended = false }: EditorTutorialProp
             aria-labelledby="editor-tutorial-title"
             aria-describedby="editor-tutorial-body"
             tabIndex={-1}
-            style={placement}
+            style={{ left: dock.left, top: dock.top, bottom: 'auto', width: dock.width, height: dock.height }}
           >
-            <div className="editor-tutorial-progress" aria-label={`사용법 ${stepIndex + 1} / ${steps.length}`}>
-              <span>{String(stepIndex + 1).padStart(2, '0')}</span>
-              <span>/ {String(steps.length).padStart(2, '0')}</span>
+            <div ref={copyRef} className="editor-tutorial-copy">
+              <div className="editor-tutorial-progress" aria-label={`사용법 ${stepIndex + 1} / ${steps.length}`}>
+                <span>{String(stepIndex + 1).padStart(2, '0')}</span>
+                <span>/ {String(steps.length).padStart(2, '0')}</span>
+              </div>
+              <h2 id="editor-tutorial-title">{activeStep.title}</h2>
+              <p id="editor-tutorial-body">{activeStep.body}</p>
+              <p className="editor-tutorial-note">완료해도 다음 방문에 다시 안내해요. 그만 보기를 누르면 자동 안내가 꺼져요.</p>
             </div>
-            <h2 id="editor-tutorial-title">{activeStep.title}</h2>
-            <p id="editor-tutorial-body">{activeStep.body}</p>
-            <p className="editor-tutorial-note">완료해도 다음 방문에 다시 안내해요. 그만 보기를 누르면 자동 안내가 꺼져요.</p>
             <div className="editor-tutorial-actions">
               <button className="editor-tutorial-secondary" type="button" onClick={closeSession}>
                 이번만 닫기

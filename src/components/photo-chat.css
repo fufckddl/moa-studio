@@ -126,3 +126,27 @@ body:has(.photo-chat-panel.is-resizing) { cursor: col-resize; user-select: none;
   .photo-chat-header { flex-shrink: 0; }
   .photo-chat-composer { max-height: 60dvh; overflow-y: auto; overscroll-behavior: contain; }
 }
+
+/* Reserve the fixed tutorial dock while explaining narrow-screen AI controls. */
+@media (max-width: 800px) {
+  .editor-tutorial-active .photo-chat-panel {
+    top: 0;
+    bottom: calc(var(--editor-tutorial-dock-height, 0px) + 16px);
+    height: calc(100dvh - var(--editor-tutorial-dock-height, 0px) - 16px);
+  }
+  .editor-tutorial-active .photo-chat-header { flex-shrink: 0; }
+  .editor-tutorial-active .photo-chat-scroll { flex: 1 1 0; min-height: 0; padding: 6px 12px; }
+  .editor-tutorial-active .photo-chat-composer {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 70%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 6px 12px;
+  }
+}
+@media (max-width: 800px) and (max-height: 600px) {
+  .editor-tutorial-active .photo-chat-header { padding: 6px 12px; }
+  .editor-tutorial-active .photo-chat-header h2 { font-size: 15px; }
+  .editor-tutorial-active .photo-chat-close { width: 28px; height: 28px; }
+}

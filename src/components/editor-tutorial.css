@@ -59,9 +59,13 @@
 .editor-tutorial-popover {
   display: flex;
   flex-direction: column;
-  max-width: calc(100vw - 32px);
+  left: 16px;
+  bottom: 16px;
+  width: min(360px, calc(100vw - 32px));
+  height: min(270px, 45vh);
+  min-height: min(120px, calc(100vh - 32px));
   max-height: calc(100vh - 32px);
-  overflow: auto;
+  overflow: hidden;
   padding: 18px;
   border: 1px solid rgba(35, 60, 48, 0.16);
   border-radius: 8px;
@@ -72,6 +76,13 @@
 
 .editor-tutorial-popover:focus {
   outline: 0;
+}
+
+.editor-tutorial-copy {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
 }
 
 .editor-tutorial-progress {
@@ -113,15 +124,14 @@
 }
 
 .editor-tutorial-actions {
-  position: sticky;
-  bottom: -18px;
+  flex: 0 0 auto;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   align-items: center;
-  margin-top: 18px;
-  padding-top: 10px;
-  padding-bottom: 2px;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 12px;
   background: #fffaf2;
 }
 
@@ -130,6 +140,7 @@
 }
 
 .editor-tutorial-actions button {
+  flex: 0 0 auto;
   min-height: 36px;
   padding: 0 12px;
   border-radius: 999px;
@@ -137,6 +148,14 @@
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
+}
+
+.editor-tutorial-actions .editor-tutorial-primary {
+  width: 66px;
+}
+
+.editor-tutorial-actions .editor-tutorial-secondary:last-of-type {
+  width: 56px;
 }
 
 .editor-tutorial-secondary {
@@ -162,7 +181,7 @@
   box-shadow: 0 0 0 3px rgba(35, 60, 48, 0.13);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 800px) {
   .editor-tutorial-replay {
     left: 12px;
     bottom: 12px;
@@ -172,13 +191,13 @@
   }
 
   .editor-tutorial-popover {
+    right: 16px;
+    width: auto;
     padding: 16px;
   }
 
   .editor-tutorial-actions {
-    flex-wrap: nowrap;
     gap: 6px;
-    bottom: -16px;
   }
 
   .editor-tutorial-spacer {
@@ -213,15 +232,24 @@
     font-size: 11px;
   }
 
-  .editor-tutorial-actions {
-    margin-top: 14px;
-    bottom: -12px;
-  }
+  .editor-tutorial-actions { gap: 4px; }
+  .editor-tutorial-actions button { padding: 0 5px; font-size: 10px; }
+  .editor-tutorial-actions .editor-tutorial-primary { width: 52px; }
+}
 
-  .editor-tutorial-actions button {
-    padding: 0 7px;
-    font-size: 11px;
+@media (max-height: 600px) {
+  .editor-tutorial-active .studio-header {
+    position: static;
   }
+}
+
+@media (max-height: 400px) {
+  .editor-tutorial-popover { padding: 10px 12px; }
+  .editor-tutorial-progress { margin-bottom: 4px; font-size: 10px; }
+  .editor-tutorial-popover h2 { margin-bottom: 6px; font-size: 16px; }
+  .editor-tutorial-popover p { font-size: 12px; line-height: 1.5; }
+  .editor-tutorial-actions { margin-top: 6px; padding-top: 6px; }
+  .editor-tutorial-actions button { min-height: 30px; }
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
