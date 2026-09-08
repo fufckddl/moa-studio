@@ -78,10 +78,18 @@ jobs:
           EOF
           sudo apt-get update
           sudo apt-get install -y postgresql-client-18
+          echo '/usr/lib/postgresql/18/bin' >> "$GITHUB_PATH"
+          export PATH="/usr/lib/postgresql/18/bin:$PATH"
           pg_dump --version
           pg_restore --version
           if [[ "$BACKUP_DESTINATION_URI" == s3://* ]]; then
-            sudo apt-get install -y awscli
+            if ! command -v aws >/dev/null 2>&1; then
+              python3 -m venv "$RUNNER_TEMP/moa-backup-tools"
+              "$RUNNER_TEMP/moa-backup-tools/bin/pip" install awscli
+              echo "$RUNNER_TEMP/moa-backup-tools/bin" >> "$GITHUB_PATH"
+              export PATH="$RUNNER_TEMP/moa-backup-tools/bin:$PATH"
+            fi
+            aws --version
           fi
 
       - name: Validate backup configuration

@@ -68,7 +68,7 @@ The backup script validates `AWS_ENDPOINT_URL` before invoking `aws`. It must be
 
 The scheduled GitHub Actions backup installs PostgreSQL client 18 from the PostgreSQL Global Development Group apt repository. Do not rely on Ubuntu's default `postgresql-client` package for this backup: `pg_dump` must be at least the production server's major version, and matching `pg_restore` 18 keeps the custom-format archive compatible with the local restore tooling.
 
-The workflow configures the PGDG apt source with the PostgreSQL signing key and an apt `Signed-By` source file, then installs `postgresql-client-18`. It installs `awscli` only when `BACKUP_DESTINATION_URI` starts with `s3://`.
+The workflow configures the PGDG apt source with the PostgreSQL signing key and an apt `Signed-By` source file, then installs `postgresql-client-18` and puts `/usr/lib/postgresql/18/bin` first on `PATH`. For an S3 destination it uses the runner's installed `aws` CLI, or installs the PyPI `awscli` package into a temporary virtual environment if absent. Ubuntu 24.04 does not provide the previous apt `awscli` package, and merely installing PostgreSQL 18 did not override the runner's PostgreSQL 16 PATH; the first remote run exposed both issues before any upload.
 
 ## Retention And Cleanup
 
