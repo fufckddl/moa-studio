@@ -49,8 +49,50 @@ test('S3 upload, list, and delete commands include the configured HTTPS endpoint
       'backups/prod/moa-studio-supabase-',
       '--output',
       'json',
+      '--no-paginate',
       '--endpoint-url',
       'https://s3.us-west-004.backblazeb2.com',
+    ],
+  );
+  assert.deepEqual(
+    s3ListObjectsArgs({ bucket: 'moa-studio-backup-20260908', prefix: 'supabase' }, endpointEnv, 'next-page-token'),
+    [
+      's3api',
+      'list-objects-v2',
+      '--bucket',
+      'moa-studio-backup-20260908',
+      '--prefix',
+      'supabase/moa-studio-supabase-',
+      '--output',
+      'json',
+      '--no-paginate',
+      '--endpoint-url',
+      'https://s3.us-west-004.backblazeb2.com',
+      '--continuation-token',
+      'next-page-token',
+    ],
+  );
+  assert.deepEqual(
+    s3ListObjectsArgs(
+      { bucket: 'moa-studio-backup-20260908', prefix: 'supabase' },
+      endpointEnv,
+      'next-page-token',
+      { backupNamePrefix: false },
+    ),
+    [
+      's3api',
+      'list-objects-v2',
+      '--bucket',
+      'moa-studio-backup-20260908',
+      '--prefix',
+      'supabase/',
+      '--output',
+      'json',
+      '--no-paginate',
+      '--endpoint-url',
+      'https://s3.us-west-004.backblazeb2.com',
+      '--continuation-token',
+      'next-page-token',
     ],
   );
   assert.deepEqual(

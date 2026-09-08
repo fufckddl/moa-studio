@@ -9,11 +9,15 @@ import {
   listStorageObjects,
 } from './backup-supabase.mjs';
 import {
+  assertBackupArchiveWithinLimit,
+  assertBackupRemoteWithinLimit,
+  backupSizeLimits,
   assertNoLinks,
   assertSafePathSegment,
   assertSafeStorageObjectName,
   parseDestinationUri,
   safeJoinWithin,
+  s3ListResponseStoredBytes,
   storageObjectLocalPath,
   validateManifestPaths,
   validateRestoreTarget,
@@ -198,6 +202,84 @@ test('backup destination supports local paths and s3 uris', () => {
     path: '/secure/Moa Backups',
     display: '/secure/Moa Backups',
   });
+});
+
+test('backup size limits use conservative defaults and accept env overrides', () => {
+  assert.deepEqual(backupSizeLimits({}), {
+    maxArchiveBytes: 100 * 1024 * 1024,
+    maxRemoteBytes: 1024 * 1024 * 1024,
+  });
+  assert.deepEqual(backupSizeLimits({
+    BACKUP_MAX_ARCHIVE_BYTES: '123',
+    BACKUP_MAX_REMOTE_BYTES: '456',
+  }), {
+    maxArchiveBytes: 123,
+    maxRemoteBytes: 456,
+  });
+  assert.throws(
+    () => backupSizeLimits({ BACKUP_MAX_ARCHIVE_BYTES: '-1' }),
+    /non-negative integer/i,
+  );
+});
+
+test('backup archive and remote size guards fail closed on overage or unknown sizes', () => {
+  assert.doesNotThrow(() => assertBackupArchiveWithinLimit(100, 100));
+  assert.throws(
+    () => assertBackupArchiveWithinLimit(101, 100),
+    /exceeds BACKUP_MAX_ARCHIVE_BYTES=100/i,
+  );
+  assert.throws(
+    () => assertBackupArchiveWithinLimit(undefined, 100),
+    /known non-negative byte size/i,
+  );
+
+  assert.doesNotThrow(() => assertBackupRemoteWithinLimit({
+    existingBytes: 80,
+    newUploadBytes: 20,
+    maxRemoteBytes: 100,
+  }));
+  assert.throws(
+    () => assertBackupRemoteWithinLimit({
+      existingBytes: 80,
+      newUploadBytes: 21,
+      maxRemoteBytes: 100,
+    }),
+    /exceeds BACKUP_MAX_REMOTE_BYTES=100/i,
+  );
+  assert.throws(
+    () => assertBackupRemoteWithinLimit({
+      existingBytes: Number.NaN,
+      newUploadBytes: 20,
+      maxRemoteBytes: 100,
+    }),
+    /known non-negative byte size/i,
+  );
+});
+
+test('S3 list response byte totals reject missing or malformed object sizes', () => {
+  assert.equal(s3ListResponseStoredBytes({
+    Contents: [
+      { Key: 'supabase/moa-studio-supabase-a.tar.gz.gpg', Size: 10 },
+      { Key: 'supabase/moa-studio-supabase-a.tar.gz.gpg.sha256', Size: 20 },
+    ],
+  }), 30);
+  assert.equal(s3ListResponseStoredBytes({}), 0);
+  assert.throws(
+    () => s3ListResponseStoredBytes(null),
+    /must be an object/i,
+  );
+  assert.throws(
+    () => s3ListResponseStoredBytes({ Contents: {} }),
+    /Contents must be an array/i,
+  );
+  assert.throws(
+    () => s3ListResponseStoredBytes({ Contents: [{ Key: 'bad', Size: '10' }] }),
+    /known non-negative byte size/i,
+  );
+  assert.throws(
+    () => s3ListResponseStoredBytes({ Contents: [{ Key: 'missing' }] }),
+    /known non-negative byte size/i,
+  );
 });
 
 test('restore target must be an explicit isolated non-production project', () => {

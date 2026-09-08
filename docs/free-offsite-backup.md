@@ -2,7 +2,22 @@
 
 The backup job supports S3-compatible object storage through `BACKUP_DESTINATION_URI=s3://...`. Standard AWS S3 still works without an endpoint. For S3-compatible providers, set the GitHub secret `BACKUP_AWS_ENDPOINT_URL` and the workflow passes it to the script as `AWS_ENDPOINT_URL`.
 
-No offsite target is configured yet. There is no account, bucket, application key, endpoint, or GitHub secret in this repository.
+## Connected B2 destination — 2026-09-08
+
+- Private bucket: `moa-studio-backup-20260908`, US West (`us-west-004`).
+- Destination: `s3://moa-studio-backup-20260908/supabase`.
+- Endpoint: `https://s3.us-west-004.backblazeb2.com`.
+- Default SSE-B2 encryption is enabled, in addition to the backup script's GPG AES256 encryption.
+- The application key is restricted to this bucket and the `supabase/` prefix. Its values are stored only in GitHub Actions secrets, not in this repository or the frontend.
+- The account has no credit card registered. Caps & Alerts displays storage $0 / 10 GB, downloads $0 / 1 GB daily, and 2,500 daily Class B and Class C operations. All email usage alerts remain enabled. Editing caps requires adding a payment method; no payment method or paid service was added.
+- The workflow limits each encrypted archive to 100 MiB and visible objects under the destination prefix plus the proposed upload to 1 GiB. A limit breach or invalid object size stops upload with an error. These safeguards supplement the provider's $0 caps; they do not measure hidden B2 versions.
+- Provider lifecycle rules hide `supabase/` objects after 30 days and delete hidden versions one day later, including versions left behind by S3 deletions. The workflow also retains backups for 30 days.
+- No Event Notifications, replication, Fireball, public bucket, or paid subscription is enabled for this backup.
+- Standard Linux GitHub Actions runs use this public repository; no paid runner was configured.
+
+The first remote backup verification is pending execution. The schedule remains daily at 02:00 KST; scheduled execution can be delayed by GitHub.
+
+Backblaze documents that staying within free usage limits incurs no charge and that Class D operations such as Event Notifications cannot be capped. Keep the account's current $0 caps and avoid adding uncapped services. [Caps and alerts](https://www.backblaze.com/docs/cloud-storage-data-caps-and-alerts), [SSE pricing and behavior](https://www.backblaze.com/docs/cloud-storage-server-side-encryption).
 
 ## Recommendation
 

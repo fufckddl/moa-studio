@@ -16,8 +16,9 @@
 ### 2026-09-08 운영 전환 확인
 
 - 사용자가 외부 무료 백업 연결과 실결제 활성화를 요청했습니다. Backblaze B2의
-  첫 10GB 무료 저장소와 현재 백업의 용량 적합성을 다시 확인했습니다. 가입 및
-  로그인 단계에서 아직 계정 접근을 완료하지 못해 버킷과 저장소 키는 미연결입니다.
+  첫 10GB 무료 저장소와 현재 백업의 용량 적합성을 다시 확인했습니다. 이후 사용자가
+  가입을 완료하여 카드 미등록/$0 상한 계정에 비공개 B2 버킷과 전용 키를 연결했습니다.
+  실행 검증 및 용량 제한은 [외부 백업 기록](free-offsite-backup.md)을 참고하세요.
 - Cloudflare R2도 확인했으나 아직 구독이 없으며, 시작 화면은 무료 한도 초과 시
   사용량 과금 및 자동 갱신 동의를 요구합니다. R2 구독은 추가하지 않았습니다.
 - 토스에 로그인해 확인한 현재 테스트 상점 `link_tobuyw5ix`의 상태는 **심사중**,
@@ -61,9 +62,8 @@
   restored while physical file versions remain target-generated. The existing
   Realtime publication migration was applied separately. See
   [the restore drill record](restore-drill-2026-09-08.md) for scope and evidence.
-- [Free offsite storage research](free-offsite-backup.md) recommends Backblaze B2.
-  B2/R2 S3 endpoint support is implemented, but no external account/bucket/key has
-  been connected, so scheduled offsite uploads remain inactive.
+- [Offsite backup configuration](free-offsite-backup.md) records the connected private
+  Backblaze B2 destination, $0 account caps, scoped credentials, size guards, and verification.
 - Supabase's own scheduled backups are unavailable on the current Free plan.
 - Operational checks outside search and payments pass: both Storage buckets are
   private (`moa-photos` 10 objects, `moa-people` 1 object), an unauthenticated

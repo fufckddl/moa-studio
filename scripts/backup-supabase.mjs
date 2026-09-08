@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { chmod, copyFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, copyFile, mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -13,6 +13,10 @@ import {
   s3ListObjectsArgs,
 } from './backup-s3.mjs';
 import {
+  assertBackupArchiveWithinLimit,
+  assertBackupRemoteWithinLimit,
+  assertKnownByteSize,
+  backupSizeLimits,
   fileEntry,
   assertSafePathSegment,
   assertSafeStorageObjectName,
@@ -23,6 +27,7 @@ import {
   safeJoinWithin,
   sha256Buffer,
   sha256File,
+  s3ListResponseStoredBytes,
   storageObjectLocalPath,
   uniqueList,
 } from './backup-helpers.mjs';
@@ -30,6 +35,7 @@ import {
 const args = new Set(process.argv.slice(2));
 const dryRun = args.has('--dry-run');
 const retentionDays = optionalInt(process.env, 'BACKUP_RETENTION_DAYS', 30);
+const sizeLimits = backupSizeLimits(process.env);
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 const backupName = `moa-studio-supabase-${timestamp}`;
 
@@ -290,6 +296,9 @@ async function encryptArchive(root) {
 async function copyToDestination(encryptedArchive, shaPath) {
   const destination = parseDestinationUri(process.env.BACKUP_DESTINATION_URI ?? process.env.BACKUP_DESTINATION);
   const archiveName = basename(encryptedArchive);
+  const archiveBytes = assertKnownByteSize((await stat(encryptedArchive)).size, 'Backup archive size');
+  const shaBytes = assertKnownByteSize((await stat(shaPath)).size, 'Backup checksum sidecar size');
+  assertBackupArchiveWithinLimit(archiveBytes, sizeLimits.maxArchiveBytes);
   if (destination.type === 'local') {
     await mkdir(destination.path, { recursive: true, mode: 0o700 });
     await copyFile(encryptedArchive, safeJoinWithin(destination.path, archiveName));
@@ -297,9 +306,59 @@ async function copyToDestination(encryptedArchive, shaPath) {
     return destination.display;
   }
   const keyPrefix = destination.prefix ? `${destination.prefix}/` : '';
+  const existingBytes = await s3DestinationStoredBytes(destination);
+  assertBackupRemoteWithinLimit({
+    existingBytes,
+    newUploadBytes: archiveBytes + shaBytes,
+    maxRemoteBytes: sizeLimits.maxRemoteBytes,
+  });
   await run('aws', s3CopyArgs(encryptedArchive, `s3://${destination.bucket}/${keyPrefix}${archiveName}`));
   await run('aws', s3CopyArgs(shaPath, `s3://${destination.bucket}/${keyPrefix}${basename(shaPath)}`));
   return destination.display;
+}
+
+async function listS3DestinationObjects(destination) {
+  const objects = [];
+  let continuationToken = null;
+  do {
+    const stdout = await capture('aws', s3ListObjectsArgs(destination, process.env, continuationToken));
+    const page = JSON.parse(stdout);
+    const contents = page.Contents ?? [];
+    if (!Array.isArray(contents)) {
+      throw new Error('S3 list response Contents must be an array when present.');
+    }
+    objects.push(...contents);
+    if (page.IsTruncated === true) {
+      continuationToken = page.NextContinuationToken;
+      if (!continuationToken) {
+        throw new Error('S3 list response was truncated without NextContinuationToken.');
+      }
+    } else {
+      continuationToken = null;
+    }
+  } while (continuationToken);
+  return objects;
+}
+
+async function s3DestinationStoredBytes(destination) {
+  let total = 0;
+  let continuationToken = null;
+  do {
+    const stdout = await capture('aws', s3ListObjectsArgs(destination, process.env, continuationToken, {
+      backupNamePrefix: false,
+    }));
+    const page = JSON.parse(stdout);
+    total += s3ListResponseStoredBytes(page);
+    if (page.IsTruncated === true) {
+      continuationToken = page.NextContinuationToken;
+      if (!continuationToken) {
+        throw new Error('S3 list response was truncated without NextContinuationToken.');
+      }
+    } else {
+      continuationToken = null;
+    }
+  } while (continuationToken);
+  return total;
 }
 
 async function applyRetention(destinationRaw) {
@@ -317,14 +376,7 @@ async function applyRetention(destinationRaw) {
     }
     return;
   }
-  const { stdout } = await new Promise((resolve, reject) => {
-    const child = spawn('aws', s3ListObjectsArgs(destination), { stdio: ['ignore', 'pipe', 'inherit'] });
-    let stdout = '';
-    child.stdout.on('data', chunk => { stdout += chunk; });
-    child.on('error', reject);
-    child.on('close', code => code === 0 ? resolve({ stdout }) : reject(new Error(`aws s3api list-objects-v2 exited with code ${code}`)));
-  });
-  const listed = JSON.parse(stdout || '{}').Contents ?? [];
+  const listed = await listS3DestinationObjects(destination);
   for (const object of listed) {
     if (Date.parse(object.LastModified) < cutoff) {
       await run('aws', s3DeleteObjectArgs(destination.bucket, object.Key));
@@ -341,6 +393,8 @@ async function main() {
   log(`Backup target: Supabase project ${projectRef}`);
   log(`Encrypted destination: ${destination.display}`);
   log(`Retention: ${retentionDays} days`);
+  log(`Archive size limit: ${sizeLimits.maxArchiveBytes} bytes`);
+  if (destination.type === 's3') log(`S3 destination size limit: ${sizeLimits.maxRemoteBytes} bytes`);
   await checkRequiredCommands(destination);
   const schemas = await discoverDatabaseSchemas();
   const client = createClient(url, serviceRoleKey, {

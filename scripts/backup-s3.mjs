@@ -34,19 +34,25 @@ export function s3CopyArgs(source, destination, env = process.env) {
   ];
 }
 
-export function s3ListObjectsArgs(destination, env = process.env) {
+export function s3ListObjectsArgs(destination, env = process.env, continuationToken = null, options = {}) {
   const prefix = destination.prefix ? `${destination.prefix}/` : '';
-  return [
+  const backupNamePrefix = options.backupNamePrefix === false ? '' : 'moa-studio-supabase-';
+  const args = [
     's3api',
     'list-objects-v2',
     '--bucket',
     destination.bucket,
     '--prefix',
-    `${prefix}moa-studio-supabase-`,
+    `${prefix}${backupNamePrefix}`,
     '--output',
     'json',
+    '--no-paginate',
     ...awsEndpointArgs(env),
   ];
+  if (continuationToken) {
+    args.push('--continuation-token', continuationToken);
+  }
+  return args;
 }
 
 export function s3DeleteObjectArgs(bucket, key, env = process.env) {

@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url';
 
 export const PRODUCTION_SUPABASE_REF = 'mbmxkathxgvznuphbfbg';
 export const PRODUCTION_SUPABASE_URL = `https://${PRODUCTION_SUPABASE_REF}.supabase.co`;
+export const DEFAULT_BACKUP_MAX_ARCHIVE_BYTES = 100 * 1024 * 1024;
+export const DEFAULT_BACKUP_MAX_REMOTE_BYTES = 1024 * 1024 * 1024;
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 const FORBIDDEN_POSTGRES_QUERY_PARAMS = new Set([
   'host',
@@ -33,6 +35,55 @@ export function optionalInt(env, name, fallback) {
     throw new Error(`${name} must be a non-negative integer`);
   }
   return parsed;
+}
+
+export function backupSizeLimits(env = process.env) {
+  return {
+    maxArchiveBytes: optionalInt(env, 'BACKUP_MAX_ARCHIVE_BYTES', DEFAULT_BACKUP_MAX_ARCHIVE_BYTES),
+    maxRemoteBytes: optionalInt(env, 'BACKUP_MAX_REMOTE_BYTES', DEFAULT_BACKUP_MAX_REMOTE_BYTES),
+  };
+}
+
+export function assertKnownByteSize(value, label) {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new Error(`${label} must be a known non-negative byte size.`);
+  }
+  return value;
+}
+
+export function assertBackupArchiveWithinLimit(archiveBytes, maxArchiveBytes) {
+  assertKnownByteSize(archiveBytes, 'Backup archive size');
+  assertKnownByteSize(maxArchiveBytes, 'BACKUP_MAX_ARCHIVE_BYTES');
+  if (archiveBytes > maxArchiveBytes) {
+    throw new Error(`Backup archive size ${archiveBytes} bytes exceeds BACKUP_MAX_ARCHIVE_BYTES=${maxArchiveBytes}.`);
+  }
+}
+
+export function assertBackupRemoteWithinLimit({ existingBytes, newUploadBytes, maxRemoteBytes }) {
+  assertKnownByteSize(existingBytes, 'Existing backup destination size');
+  assertKnownByteSize(newUploadBytes, 'New backup upload size');
+  assertKnownByteSize(maxRemoteBytes, 'BACKUP_MAX_REMOTE_BYTES');
+  const projectedBytes = existingBytes + newUploadBytes;
+  if (!Number.isSafeInteger(projectedBytes) || projectedBytes > maxRemoteBytes) {
+    throw new Error(
+      `Projected backup destination size ${projectedBytes} bytes exceeds BACKUP_MAX_REMOTE_BYTES=${maxRemoteBytes}.`,
+    );
+  }
+}
+
+export function s3ListResponseStoredBytes(response, pageLabel = 'S3 list response') {
+  if (!response || typeof response !== 'object' || Array.isArray(response)) {
+    throw new Error(`${pageLabel} must be an object.`);
+  }
+  const contents = response.Contents ?? [];
+  if (!Array.isArray(contents)) {
+    throw new Error(`${pageLabel} Contents must be an array when present.`);
+  }
+  return contents.reduce((total, object, index) => {
+    const objectKey = object?.Key ? ` for ${object.Key}` : ` at index ${index}`;
+    const size = assertKnownByteSize(object?.Size, `${pageLabel} object size${objectKey}`);
+    return total + size;
+  }, 0);
 }
 
 export function parseCsv(value, fallback = []) {
