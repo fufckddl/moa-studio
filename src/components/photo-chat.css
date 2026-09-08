@@ -337,8 +337,9 @@ body:has(.photo-chat-panel.is-resizing) { cursor: col-resize; user-select: none;
 .photo-chat-panel .photo-chat-target-button img, .photo-chat-panel .photo-chat-target-placeholder { width: 26px; height: 32px; }
 .photo-chat-panel .photo-chat-target-button small { font-size: 9px; }
 .photo-chat-panel .photo-chat-target-button strong { font-size: 11px; }
-.photo-chat-panel .photo-chat-target-preview { position: absolute; top: calc(100% + 4px); left: 12px; right: 12px; margin: 0; box-shadow: 0 8px 24px #17342b26; }
-.photo-chat-panel .photo-chat-target-preview img { height: min(240px, 32dvh); }
+.photo-chat-panel .photo-chat-target-preview { position: absolute; top: calc(100% + 4px); left: 12px; right: auto; width: min(156px, calc(100% - 24px)); margin: 0; box-shadow: 0 8px 24px #17342b26; }
+.photo-chat-panel .photo-chat-target-preview img { height: min(156px, 24dvh); }
+.photo-chat-panel .photo-chat-target-preview figcaption { padding: 4px 6px; font-size: 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .photo-chat-panel .photo-chat-composer { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 8px; padding: 6px 12px max(6px, env(safe-area-inset-bottom)); overflow: visible; }
 .photo-chat-panel .photo-chat-mode, .photo-chat-panel .photo-chat-references, .photo-chat-panel .photo-chat-prompt-top { grid-column: 1 / -1; margin: 0; }
 .photo-chat-panel .photo-chat-mode { padding: 2px; }
