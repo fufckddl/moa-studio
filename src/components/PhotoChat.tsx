@@ -55,7 +55,7 @@ export function PhotoChat(props: Props) {
   }, [width]);
   function close() { setOpen(false); requestAnimationFrame(() => trigger.current?.focus()); }
   return <>
-    <button ref={trigger} className="photo-chat-tab" type="button" aria-label="AI와 수정하기" aria-expanded={open} aria-controls="photo-chat-panel" onClick={() => setOpen(value => !value)} hidden={open}>
+    <button data-tutorial="photo-chat" ref={trigger} className="photo-chat-tab" type="button" aria-label="AI와 수정하기" aria-expanded={open} aria-controls="photo-chat-panel" onClick={() => setOpen(value => !value)} hidden={open}>
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m12 3 2.4 6.6L21 12l-6.6 2.4L12 21l-2.4-6.6L3 12l6.6-2.4L12 3Z"/><path d="M20 2v4M18 4h4M4 18v4M2 20h4"/></svg>
       <span className="photo-chat-tab-label" aria-label="AI와 수정하기"><span className="photo-chat-tab-ai" aria-hidden="true"><span>A</span><span>I</span></span><span aria-hidden="true">와 수정하기</span></span>
     </button>

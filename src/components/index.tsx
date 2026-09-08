@@ -109,7 +109,7 @@ export function Shell({ page, brand, saving, readOnly = false, saveStatus = '', 
           <strong>mo:a</strong>
           <span>studio</span>
         </button>
-        <nav className="side-nav">
+        <nav className="side-nav" data-tutorial="navigation">
           {navItems.map((item) => (
             <button key={item.key} className={page === item.key ? 'nav-button active' : 'nav-button'} onClick={() => onNavigate(item.key)} aria-current={page === item.key ? 'page' : undefined}>
               <Icon name={item.icon} />
@@ -165,7 +165,7 @@ export function BriefForm({ brand, brief, photos, mode, generating, readOnly = f
 
   return (
     <form className="brief-panel" onSubmit={submit}>
-      <PanelStep number="01" title="사진 선택">
+      <PanelStep tutorial="photos" number="01" title="사진 선택">
         <div className="photo-strip" aria-label="선택된 사진">
           {photos.map((photo) => (
             <figure className={selectedPhotoId === photo.id ? 'photo-thumb selected' : 'photo-thumb'} key={photo.id}>
@@ -195,12 +195,14 @@ export function BriefForm({ brand, brief, photos, mode, generating, readOnly = f
       </PanelStep>
       <PanelStep number="02" title="콘텐츠 정보">
         {readOnly ? <ReadOnlyNotice onLogin={onLogin}>둘러보기 모드입니다. 편집·저장하려면 로그인해 주세요.</ReadOnlyNotice> : null}
+        <div data-tutorial="information">
         <Field label="메뉴 이름" hint={`${brief.productName.length} / 30`}>
           <input value={brief.productName} maxLength={30} disabled={readOnly} onChange={(event) => onBriefChange({ productName: event.target.value })} />
         </Field>
         <Field label="설명" hint={`${descriptionLength} / 160`}>
           <textarea value={brief.description} maxLength={160} rows={3} disabled={readOnly} onChange={(event) => onBriefChange({ description: event.target.value })} />
         </Field>
+        </div>
         <div className="form-row">
           <Field label="가격">
             <input value={brief.price} inputMode="numeric" disabled={readOnly} onChange={(event) => onBriefChange({ price: event.target.value })} />
@@ -237,7 +239,7 @@ export function BriefForm({ brand, brief, photos, mode, generating, readOnly = f
           <span>{mode === 'ai' ? 'AI 생성 모드로 문구를 만듭니다.' : `${brand.name} 입력값만 반영하는 템플릿 모드입니다.`}</span>
         </div>
         {error ? <p className="form-error" role="alert">{error}</p> : null}
-        <button className="primary-button" type="submit" disabled={generating || photos.length === 0 || readOnly}>
+        <button data-tutorial="generate" className="primary-button" type="submit" disabled={generating || photos.length === 0 || readOnly}>
           <Icon name="spark" />
           <span>{readOnly ? '로그인하고 만들기' : generating ? '만드는 중' : '콘텐츠 만들기'}</span>
         </button>
@@ -246,9 +248,9 @@ export function BriefForm({ brand, brief, photos, mode, generating, readOnly = f
   );
 }
 
-function PanelStep({ number, title, children }: { number: string; title: string; children: ReactNode }) {
+function PanelStep({ number, title, children, tutorial }: { number: string; title: string; children: ReactNode; tutorial?: string }) {
   return (
-    <section className="panel-step">
+    <section className="panel-step" data-tutorial={tutorial}>
       <h2><span>{number}</span>{title}</h2>
       {children}
     </section>
@@ -445,12 +447,12 @@ export function WorkspacePreview({ selectedCardId, onCardSelect: setSelectedCard
     <section className="preview-panel" aria-label="콘텐츠 미리보기">
       <PhotoChat userId={chatUserId} onBusyChange={onChatBusyChange} cardId={selectedCard?.id ?? 'empty'} photo={selectedPhoto} cardTitle={selectedCard?.title ?? ''} onReplace={onPhotoReplace} disabled={photoEditingDisabled || exporting || readOnly} />
       <div className="preview-toolbar">
-        <div className="tabs" role="tablist" aria-label="미리보기 유형">
+        <div className="tabs" data-tutorial="preview" role="tablist" aria-label="미리보기 유형">
           <TabButton active={view === 'cards'} icon="card" label="카드뉴스" onClick={() => chooseView('cards')} />
           <TabButton active={view === 'caption'} icon="post" label="게시글" onClick={() => chooseView('caption')} />
           {scheduleAvailable ? <TabButton active={view === 'schedule'} icon="calendar" label="홍보 일정" onClick={() => chooseView('schedule')} /> : null}
         </div>
-        <div className="export-group">
+        <div className="export-group" data-tutorial="export">
           <button className="ghost-button" onClick={() => onExport('png', selectedIndex)} disabled={exporting || readOnly || view !== 'cards' || !selectedCard}>
             <Icon name="download" />
             <span>PNG</span>
@@ -470,7 +472,7 @@ export function WorkspacePreview({ selectedCardId, onCardSelect: setSelectedCard
           <div className="canvas-frame">
             <canvas ref={canvasRef} width={1080} height={1350} aria-label={`${selectedCard?.title ?? '카드'} 미리보기`} />
           </div>
-          <div className="card-actions" aria-label="카드 관리">
+          <div className="card-actions" data-tutorial="card-manage" aria-label="카드 관리">
             <button className="ghost-button" type="button" onClick={addCard} disabled={photoEditingDisabled || readOnly || pack.cards.length >= CARD_LIMITS.max}>
               <Icon name="plus" />
               <span>카드 추가</span>
@@ -496,7 +498,7 @@ export function WorkspacePreview({ selectedCardId, onCardSelect: setSelectedCard
             <button type="button" aria-label="다음 카드" disabled={photoEditingDisabled} onClick={() => moveSlide(1)}>›</button>
             <strong>{String(selectedIndex + 1).padStart(2, '0')} <span>/ {String(pack.cards.length).padStart(2, '0')}</span></strong>
           </div>
-          <button className="edit-toggle" type="button" disabled={readOnly} aria-expanded={editing} onClick={() => setEditing(!editing)}><Icon name={editing ? 'close' : 'pen'} /><span>{readOnly ? '로그인하고 편집' : editing ? '편집 닫기' : '문구 편집'}</span></button>
+          <button className="edit-toggle" data-tutorial="card-edit" type="button" disabled={readOnly} aria-expanded={editing} onClick={() => setEditing(!editing)}><Icon name={editing ? 'close' : 'pen'} /><span>{readOnly ? '로그인하고 편집' : editing ? '편집 닫기' : '문구 편집'}</span></button>
           {editing && selectedCard ? (
             <fieldset className="edit-panel" disabled={photoEditingDisabled || readOnly} style={{ border: 0, margin: 0, minWidth: 0 }}>
               <div className="form-row">

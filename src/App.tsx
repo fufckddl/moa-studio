@@ -5,6 +5,7 @@ import { Library } from './views/Library';
 import { ConfirmDialog } from './views/ConfirmDialog';
 import { AuthDialog } from './views/AuthDialog';
 import { getSession, getWorkspace, putWorkspace, logout, subscribeWorkspace, type BrandProfile, type User } from './lib/auth';
+import { EditorTutorial } from './components/EditorTutorial';
 import { BusinessInfo } from './components/BusinessInfo';
 import { UsagePanel } from './components/UsagePanel';
 import { CheckoutDialog } from './CheckoutDialog';
@@ -581,7 +582,7 @@ export default function App() {
   if (!authReady) return <main className="auth-recovery"><h1>스튜디오를 준비하고 있어요.</h1>{connection}<button onClick={() => navigate('home')}>홈으로 돌아가기</button></main>;
   if (page === 'payment') return <><PaymentResult user={user} onLogin={showAccount} onHome={() => navigate('home')} /><footer className="payment-business-footer"><BusinessInfo /></footer>{accountDialog}{notification}</>;
   return <Shell page={page} brand={brand} onNavigate={navigate} onHome={() => navigate('home')} saveStatus={saveStatus} saving={generating || uploading || savingAccount || photoChatBusy} readOnly={isReadOnly} accountControl={<button className="studio-account-button" onClick={showAccount}>{user ? `${user.name}님` : '로그인 / 회원가입'}</button>}>
-    {page === 'editor' && <><div className="page-intro"><h1>우리 카페의 이야기를 만들어요.</h1><p>사진을 고르고 이야기를 더하면, 콘텐츠가 완성됩니다.</p></div>
+    {page === 'editor' && <><EditorTutorial key={user?.id ?? 'guest'} userId={user?.id ?? null} suspended={authOpen || !!checkout || !!pendingAction} /><div className="page-intro"><h1>우리 카페의 이야기를 만들어요.</h1><p>사진을 고르고 이야기를 더하면, 콘텐츠가 완성됩니다.</p></div>
       <UsagePanel user={user} status={status} entitlements={entitlements} loading={usageLoading} compact onRefresh={() => void refreshEntitlements(user, { silent: true })} />
       <div className="workbench"><BriefForm brand={brand} brief={brief} photos={photos} onBriefChange={changeBrief} onPhotosAdd={addPhotos} onPhotoRemove={removePhoto} selectedPhotoId={photos.find(photo => photo.id === selectedCard?.imageId)?.id ?? photos[0]?.id} onPhotoSelect={selectPhoto} onGenerate={generate} generating={generating || uploading || photoChatBusy} mode={mode} error={error ?? (offline ? '생성 서버에 연결할 수 없어요. 서버 실행 상태를 확인해 주세요.' : null)} readOnly={isReadOnly} onLogin={showAccount} />
         <WorkspacePreview key={chatSession} selectedCardId={selectedCard?.id ?? ''} onCardSelect={setSelectedCardId} chatUserId={user?.id ?? null} onChatBusyChange={setPhotoChatBusy} onPhotoReplace={replacePhoto} photoEditingDisabled={generating || uploading || savingAccount || photoChatBusy} readOnly={isReadOnly} onLogin={showAccount} brand={brand} photos={photos} pack={pack} onPackChange={changePack} exporting={exporting} onExport={exportContent} scheduleEnabled={brief.includeSchedule === true} />
