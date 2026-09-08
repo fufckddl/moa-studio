@@ -149,3 +149,34 @@ body:has(.photo-chat-panel.is-resizing) { cursor: col-resize; user-select: none;
   .editor-tutorial-active .photo-chat-header h2 { font-size: 15px; }
   .editor-tutorial-active .photo-chat-close { width: 28px; height: 28px; }
 }
+
+/* Mobile chat opens as a full-width bottom sheet without squeezing the editor. */
+@keyframes photo-chat-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@media (max-width: 800px) {
+  .photo-chat-panel {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 85dvh;
+    max-height: 100dvh;
+    border-left: 0;
+    border-top: 1px solid #d9dfd7;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -10px 40px #17342b24;
+    animation-name: photo-chat-slide-up;
+  }
+  .photo-chat-header { flex-shrink: 0; }
+  .photo-chat-resize { display: none; }
+  .app-shell:has(.photo-chat-panel:not([hidden])) .editor-tutorial-replay { display: none; }
+  .photo-chat-composer { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+  .photo-chat-tab { top: auto; bottom: 24px; padding: 13px 16px; writing-mode: horizontal-tb; }
+  .photo-chat-tab-ai { flex-direction: row; line-height: 1; }
+  .main-surface:has(.photo-chat-panel:not([hidden])) { margin-right: 0; }
+}
+@media (max-width: 800px) and (prefers-reduced-motion: reduce) {
+  .photo-chat-panel { animation: none; }
+}

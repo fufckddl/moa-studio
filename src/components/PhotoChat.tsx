@@ -558,7 +558,7 @@ function PhotoChatPanel({ photo, cardTitle, onReplace, disabled, open, onClose, 
   const submitLabel = mode === 'person' ? busy ? '생성 중…' : '인물 생성' : busy ? '수정 중…' : '수정 요청';
   const submitDisabled = mode === 'person' ? !canGeneratePerson : !canUseEdit || loadingStatus || !photo || !prompt.trim() || busy || disabled;
 
-  return <aside hidden={!open} id="photo-chat-panel" className={`photo-chat-panel${resizing ? ' is-resizing' : ''}`} style={{ width }} aria-labelledby="photo-chat-title">
+  return <aside hidden={!open} id="photo-chat-panel" className={`photo-chat-panel${resizing ? ' is-resizing' : ''}`} style={{ width: viewportWidth <= 800 ? '100%' : width }} aria-labelledby="photo-chat-title">
     <div className="photo-chat-resize" role="separator" aria-label="AI 채팅창 너비 조절" aria-orientation="vertical" aria-valuemin={widthBounds.min} aria-valuemax={widthBounds.max} aria-valuenow={width} aria-valuetext={`${Math.round(width)}픽셀, 화면의 ${Math.round(width / viewportWidth * 100)}%`} tabIndex={0} title="왼쪽으로 드래그해 넓히기 · 최대 화면의 절반" onPointerDown={event => {
       if (event.button !== 0) return;
       event.preventDefault();
