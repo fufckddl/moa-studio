@@ -821,12 +821,12 @@
     min-height: 38px;
     padding-block: 0;
   }
-  .app-shell header.studio-header { padding: 10px 12px 0; gap: 0 8px; }
+  .app-shell header.studio-header { grid-template-columns: minmax(0, 1fr) auto; padding: 10px 12px 0; gap: 0 8px; }
   .app-shell .studio-header .brand-mark strong { font-size: 24px; }
   .app-shell .studio-header .brand-mark span { font-size: 13px; }
   .app-shell .studio-header .side-nav { margin-top: 6px; }
   .app-shell .studio-header .nav-button { min-height: 38px; font-size: 11px; }
-  .app-shell .studio-header-account { padding-bottom: 8px; }
+  .app-shell .studio-header-account { grid-column: 2; grid-row: 1; justify-self: end; gap: 0; padding-bottom: 0; }
   .app-shell .studio-account-button { min-height: 30px; padding: 5px 8px; font-size: 11px; }
   .app-shell .page-intro { padding: 18px 12px 14px; }
   .app-shell .page-intro h1 { font-size: 24px; }
