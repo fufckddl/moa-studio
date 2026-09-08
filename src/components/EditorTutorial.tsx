@@ -135,7 +135,9 @@ function focusableElements(container: HTMLElement | null) {
 }
 
 function findTarget(step: TutorialStep) {
-  return document.querySelector<HTMLElement>(step.selector);
+  const element = document.querySelector<HTMLElement>(step.selector);
+  if (!element || element.getClientRects().length === 0 || window.getComputedStyle(element).visibility === 'hidden') return null;
+  return element;
 }
 
 function targetRect(element: HTMLElement): TargetRect {
