@@ -849,6 +849,13 @@
   .app-shell .field textarea { min-height: 72px; padding: 8px 9px; line-height: 1.6; }
   .app-shell .field input[type="color"] { min-height: 36px; padding: 3px; }
   .app-shell .field input[type="range"] { padding: 0; }
+  .app-shell .style-controls { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1.25fr); gap: 6px; }
+  .app-shell .style-controls .field { min-width: 0; grid-template-rows: 32px 36px; gap: 4px; margin-bottom: 0; }
+  .app-shell .style-controls .field > span { flex-direction: column; justify-content: flex-start; gap: 2px; }
+  .app-shell .style-controls .field b { font-size: 11px; white-space: nowrap; }
+  .app-shell .style-controls .field em { font-size: 10px; }
+  .app-shell .style-controls .field input, .app-shell .style-controls .field select { min-width: 0; margin: 0; }
+  .app-shell .style-controls .field select { padding-inline: 4px; font-size: 12px; }
   .app-shell .photo-strip { gap: 8px; margin-bottom: 8px; }
   .app-shell .photo-thumb { flex-basis: 54px; width: 54px; }
   .app-shell .drop-zone { min-height: 46px; padding: 7px 9px; column-gap: 8px; }
