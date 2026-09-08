@@ -471,13 +471,11 @@ export function WorkspacePreview({ selectedCardId, onCardSelect: setSelectedCard
             <canvas ref={canvasRef} width={1080} height={1350} aria-label={`${selectedCard?.title ?? '카드'} 미리보기`} />
           </div>
           <div className="card-actions" data-tutorial="card-manage" aria-label="카드 관리">
-            <button className="ghost-button" type="button" onClick={addCard} disabled={photoEditingDisabled || readOnly || pack.cards.length >= CARD_LIMITS.max}>
+            <button className="ghost-button card-icon-button" type="button" aria-label="카드 추가" title="카드 추가" onClick={addCard} disabled={photoEditingDisabled || readOnly || pack.cards.length >= CARD_LIMITS.max}>
               <Icon name="plus" />
-              <span>카드 추가</span>
             </button>
-            <button className="ghost-button" type="button" onClick={deleteCard} disabled={photoEditingDisabled || readOnly || pack.cards.length <= CARD_LIMITS.min}>
+            <button className="ghost-button card-icon-button" type="button" aria-label="카드 삭제" title="카드 삭제" onClick={deleteCard} disabled={photoEditingDisabled || readOnly || pack.cards.length <= CARD_LIMITS.min}>
               <Icon name="trash" />
-              <span>삭제</span>
             </button>
           </div>
           <div className="slide-controls">
