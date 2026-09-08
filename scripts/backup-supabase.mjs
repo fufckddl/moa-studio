@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises';
+import { chmod, copyFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
 import {
   fileEntry,
@@ -139,37 +140,74 @@ async function collectDbDump(root, schemas) {
   ]);
 }
 
-async function discoverStorageBuckets(client) {
+export async function discoverStorageBuckets(client) {
   const configured = parseCsv(process.env.SUPABASE_STORAGE_BUCKETS);
   if (configured.length > 0) return configured;
-  const { data, error } = await client
-    .schema('storage')
-    .from('buckets')
-    .select('id')
-    .order('id', { ascending: true });
+  const { data, error } = await client.storage.listBuckets();
   if (error) throw new Error(`Failed to discover storage buckets: ${error.message}`);
-  return data.map(bucket => assertSafePathSegment(bucket.id, 'storage bucket id')).filter(Boolean);
+  return (data ?? [])
+    .map(bucket => assertSafePathSegment(bucket.id ?? bucket.name, 'storage bucket id'))
+    .sort((a, b) => a.localeCompare(b));
 }
 
-async function listStorageObjects(client, buckets) {
+function storagePath(prefix, name) {
+  return prefix ? `${prefix}/${name}` : name;
+}
+
+function isStorageFolder(item) {
+  return item
+    && item.name
+    && item.id == null
+    && item.metadata == null
+    && item.created_at == null
+    && item.updated_at == null
+    && item.last_accessed_at == null;
+}
+
+async function listStorageObjectsInPrefix(client, bucket, prefix = '') {
+  const objects = [];
+  let offset = 0;
+  const pageSize = 1000;
+  while (true) {
+    const { data, error } = await client.storage
+      .from(bucket)
+      .list(prefix, {
+        limit: pageSize,
+        offset,
+        sortBy: { column: 'name', order: 'asc' },
+      });
+    if (error) {
+      const label = prefix ? `${bucket}/${prefix}` : bucket;
+      throw new Error(`Failed to list storage objects for ${label}: ${error.message}`);
+    }
+    const items = data ?? [];
+    for (const item of items) {
+      if (!item?.name) continue;
+      const name = storagePath(prefix, item.name);
+      if (isStorageFolder(item)) {
+        objects.push(...await listStorageObjectsInPrefix(client, bucket, name));
+      } else {
+        objects.push({
+          bucket_id: bucket,
+          name,
+          metadata: item.metadata ?? null,
+          created_at: item.created_at ?? null,
+          updated_at: item.updated_at ?? null,
+          last_accessed_at: item.last_accessed_at ?? null,
+        });
+      }
+    }
+    if (items.length < pageSize) break;
+    offset += pageSize;
+  }
+  return objects;
+}
+
+export async function listStorageObjects(client, buckets) {
   const objects = [];
   for (const bucket of buckets) {
     const safeBucket = assertSafePathSegment(bucket, 'storage bucket id');
-    let from = 0;
-    const pageSize = 1000;
-    while (true) {
-      const { data, error } = await client
-        .schema('storage')
-        .from('objects')
-        .select('bucket_id,name,metadata,created_at,updated_at,last_accessed_at')
-        .eq('bucket_id', safeBucket)
-        .order('name', { ascending: true })
-        .range(from, from + pageSize - 1);
-      if (error) throw new Error(`Failed to list storage objects for ${safeBucket}: ${error.message}`);
-      objects.push(...data);
-      if (data.length < pageSize) break;
-      from += pageSize;
-    }
+    objects.push(...await listStorageObjectsInPrefix(client, safeBucket));
   }
   return objects;
 }
@@ -211,25 +249,33 @@ async function collectStorage(root, buckets) {
 
 async function encryptArchive(root) {
   const passphrase = requireEnv(process.env, 'BACKUP_ENCRYPTION_PASSPHRASE');
-  const archive = join(tmpdir(), `${backupName}.tar.gz`);
+  const encryptionRoot = await mkdtemp(join(tmpdir(), 'moa-encrypt-'));
+  const archive = join(encryptionRoot, `${backupName}.tar.gz`);
   const encrypted = `${archive}.gpg`;
-  await run('tar', ['-czf', archive, '-C', dirname(root), basename(root)]);
-  await run('gpg', [
-    '--batch',
-    '--yes',
-    '--pinentry-mode',
-    'loopback',
-    '--passphrase-fd',
-    '0',
-    '--symmetric',
-    '--cipher-algo',
-    'AES256',
-    '--output',
-    encrypted,
-    archive,
-  ], { input: passphrase });
-  await rm(archive, { force: true });
-  return encrypted;
+  try {
+    await run('tar', ['-czf', archive, '-C', dirname(root), basename(root)]);
+    await chmod(archive, 0o600);
+    await run('gpg', [
+      '--batch',
+      '--yes',
+      '--pinentry-mode',
+      'loopback',
+      '--passphrase-fd',
+      '0',
+      '--symmetric',
+      '--cipher-algo',
+      'AES256',
+      '--output',
+      encrypted,
+      archive,
+    ], { input: passphrase });
+    return encrypted;
+  } catch (error) {
+    await rm(encryptionRoot, { recursive: true, force: true });
+    throw error;
+  } finally {
+    await rm(archive, { force: true });
+  }
 }
 
 async function copyToDestination(encryptedArchive, shaPath) {
@@ -304,6 +350,7 @@ async function main() {
   const root = join(tmpdir(), backupName);
   await rm(root, { recursive: true, force: true });
   await mkdir(root, { recursive: true, mode: 0o700 });
+  let encryptedArchive;
   try {
     const dbEntries = await collectDbDump(root, schemas);
     const storage = await collectStorage(root, buckets);
@@ -327,7 +374,7 @@ async function main() {
       files: [...dbEntries, ...storage.entries],
     };
     await writeFile(join(root, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`, { mode: 0o600 });
-    const encryptedArchive = await encryptArchive(root);
+    encryptedArchive = await encryptArchive(root);
     const archiveSha = await sha256File(encryptedArchive);
     const shaPath = `${encryptedArchive}.sha256`;
     await writeFile(shaPath, `${archiveSha}  ${basename(encryptedArchive)}\n`, { mode: 0o600 });
@@ -339,10 +386,13 @@ async function main() {
     log(`Storage objects: ${storage.entries.length}`);
   } finally {
     await rm(root, { recursive: true, force: true });
+    if (encryptedArchive) await rm(dirname(encryptedArchive), { recursive: true, force: true });
   }
 }
 
-main().catch(error => {
-  process.stderr.write(`Backup failed: ${error.message}\n`);
-  process.exitCode = 1;
-});
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  main().catch(error => {
+    process.stderr.write(`Backup failed: ${error.message}\n`);
+    process.exitCode = 1;
+  });
+}

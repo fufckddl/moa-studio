@@ -23,11 +23,25 @@
 - Account direct API erase/delete passed. After the `moa-account` v2 CORS fix, browser data erase passes: Auth account retained, workspace rows removed, lifecycle lock released. Password recovery link and new password submission also pass. Final browser account deletion passed: Auth, workspace, active order, and Storage counts reached zero; six canceled test orders were archived, then only those QA archives were cleaned up.
 - The AI gate is enabled with `MOA_AI_READY=1`. `TOSS_LIVE_ENABLED=0` and `PAID_FEATURES_READY=0` remain disabled, so live checkout is still unavailable.
 - OpenAI Responses and Images permissions now pass real provider calls. The deployed content function reports live OpenAI mode; paid Light generation, 10-to-9 usage decrement, idempotent duplicate handling, failed-request quota recovery, free-account rejection, and a real `gpt-image-2` photo edit all passed. Temporary QA Auth, order, and AI-request data was removed.
-- Backup scripts, workflows, and procedures exist, but `SUPABASE_DB_URL` and encrypted external backup destination credentials are not configured. No real backup or restore has run yet.
+- On 2026-09-08, the database password was reset with user authorization. A
+  TLS Postgres connection succeeded, and public site, Auth health, and content
+  provider status returned 200 after the reset.
+- GitHub Actions secrets now contain `SUPABASE_DB_URL`,
+  `SUPABASE_SERVICE_ROLE_KEY`, and `BACKUP_ENCRYPTION_PASSPHRASE`.
+  `BACKUP_DESTINATION_URI` and external storage credentials remain unset, so
+  scheduled off-machine backups are not active.
+- A real AES256 encrypted local backup was created in the operator's
+  `~/Moa Backups` directory: 4 DB dumps and 11 Storage objects. Restore dry-run
+  decrypted and checksummed all 15 files successfully.
+- Full isolated Supabase DB/Storage replay remains unverified. Docker image
+  preparation exhausted local disk space; task-owned downloaded images were
+  removed and Docker stopped. Existing Docker images were retained. The backup
+  used the installed host PostgreSQL tools with the CLI-generated dump script.
+- The current dump contains complete managed `auth`/`storage` schema DDL;
+  replay into a fresh Supabase project needs a separate compatibility pass.
+  Managed schema customizations and Storage metadata preservation must be
+  checked before considering restore readiness complete.
 - Supabase's own scheduled backups are unavailable on the current Free plan.
-  The database password is not stored locally and Supabase only offers a reset,
-  which would invalidate existing direct database connections. GitHub has no
-  backup secrets configured, so the custom encrypted backup cannot run yet.
 - Operational checks outside search and payments pass: both Storage buckets are
   private (`moa-photos` 10 objects, `moa-people` 1 object), an unauthenticated
   public object request is rejected, and a signed URL downloads the sampled

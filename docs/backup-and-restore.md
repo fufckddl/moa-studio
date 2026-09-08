@@ -9,8 +9,27 @@ Supabase의 데이터베이스 백업은 Storage 객체 메타데이터는 포�
 - Supabase URL: `https://mbmxkathxgvznuphbfbg.supabase.co`
 - 필수 DB schema: `public,auth,storage`
 - 있으면 추가하는 DB schema: `moa_private`
-- Storage bucket: 실행 시 `storage.buckets`에서 전체 bucket ID를 조회합니다.
+- Storage bucket: 실행 시 Storage API `listBuckets()`로 전체 bucket ID를 조회합니다.
 - 보관 기간: 30일
+
+## 2026-09-08 실제 실행 결과
+
+- 사용자 승인 후 DB 비밀번호를 재설정하고 TLS Postgres 접속을 확인했습니다.
+- DB URL, Storage 관리자 키, 백업 암호화 암호를 GitHub Actions Secret에 저장했습니다.
+- `~/Moa Backups/moa-studio-supabase-2026-09-08T02-22-58-032Z.tar.gz.gpg`
+  백업을 생성했습니다. AES256 암호화, DB 덤프 4개, 사진 파일 11개입니다.
+- 실제 복구 dry run에서 암호 해제, tar 경로와 링크 검사, 15개 파일 SHA256
+  검증이 통과했습니다. 이 결과는 DB/Storage에 실제 쓰는 복구 검증을 뜻하지 않습니다.
+- Docker 이미지 준비 중 디스크 공간이 소진되어 격리 Supabase 전체 복구를
+  실행하지 못했습니다. 이번에 다운로드한 이미지 세 개를 제거하고 Docker를
+  종료했습니다. 기존 사용자 이미지는 유지했습니다. DB 백업은 CLI가 생성한
+  dump 스크립트와 기존 호스트 PostgreSQL 도구로 완료했습니다.
+- 현재 `schema.sql`은 managed `auth`/`storage` DDL을 포함합니다. 새 Supabase의
+  기존 managed 객체와 충돌하는지 확인하고, 앱 schema 및 managed 정책/트리거를
+  분리해 복구하는 검증이 남아 있습니다. Storage API 업로드는 서버 metadata와
+  timestamps를 갱신하므로 백업 당시 metadata의 완전한 보존도 아직 보장하지 않습니다.
+- 외부 비공개 백업 대상은 미설정입니다. 현재 파일은 이 Mac에만 있으며,
+  GitHub 예약 백업은 외부 대상 설정이 완료될 때까지 건너뜁니다.
 
 ## 필요한 비밀값
 
@@ -30,7 +49,7 @@ CI 빌드 검증에는 별도로 `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE
 
 `SUPABASE_DB_SCHEMAS`는 기본값 `public,auth,storage`를 사용합니다. `SUPABASE_OPTIONAL_DB_SCHEMAS`는 기본값 `moa_private`이며, 실행 시 실제 존재하는 schema만 dump 대상에 추가합니다. 새 비공개 schema가 생기면 `SUPABASE_OPTIONAL_DB_SCHEMAS=moa_private,새_schema`처럼 추가합니다.
 
-`SUPABASE_STORAGE_BUCKETS`는 기본으로 설정하지 않습니다. 비어 있으면 스크립트가 `storage.buckets`를 조회해서 모든 bucket을 백업합니다. 특정 bucket만 백업해야 하는 임시 조사 때만 쉼표 구분 값으로 override합니다.
+`SUPABASE_STORAGE_BUCKETS`는 기본으로 설정하지 않습니다. 비어 있으면 스크립트가 Storage API로 모든 bucket을 조회하고, 폴더별 페이지를 순회해 파일을 백업합니다. 특정 bucket만 백업해야 하는 임시 조사 때만 쉼표 구분 값으로 override합니다.
 
 백업 실행 환경에는 `supabase`, `psql`, `pg_dump`, `gpg`, `tar`가 필요합니다. `s3://` 대상을 쓰면 `aws` CLI도 필요합니다. GitHub Actions workflow는 `postgresql-client`를 설치해서 `psql`과 `pg_dump`를 제공합니다.
 
@@ -112,6 +131,8 @@ S3를 사용할 때는 백업 전용 IAM 사용자를 만들고 대상 prefix에
 
 - `RESTORE_CONFIRM_ISOLATED_TARGET=1`
 - `RESTORE_TARGET_PROJECT_REF`와 `RESTORE_EXPECTED_PROJECT_REF`가 정확히 일치
+- DB 연결 문자열의 실제 host/user도 target ref와 일치해야 합니다. 연결 대상을 바꾸는 URL query 옵션은 허용하지 않습니다.
+- 로컬 검증은 `RESTORE_ALLOW_LOCAL_TARGET=1`과 API/DB 양쪽 loopback 주소가 필요합니다.
 - target ref와 URL이 운영 프로젝트 `mbmxkathxgvznuphbfbg` 또는 `https://mbmxkathxgvznuphbfbg.supabase.co`가 아님
 
 복구 dry run:

@@ -160,6 +160,7 @@ async function restoreStorage(root, manifest) {
 }
 
 async function main() {
+  if (execute) requireEnv(process.env, 'RESTORE_TARGET_DB_URL');
   const target = validateRestoreTarget(process.env);
   log(`Restore target verified: ${target.targetRef}`);
   await ensureCommand('gpg');

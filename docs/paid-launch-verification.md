@@ -1,13 +1,13 @@
 # Paid Launch Verification
 
 Live paid checkout stays disabled until all gates below are complete. Keep
-`TOSS_LIVE_ENABLED=0`, `PAID_FEATURES_READY=0`, and `MOA_AI_READY=0` until the
-final live verification pass.
+`TOSS_LIVE_ENABLED=0` and `PAID_FEATURES_READY=0` until the final live
+verification pass. `MOA_AI_READY=1` has passed real provider verification.
 
 ## 2026-09-07 Status
 
-- Live paid gates remain disabled: `TOSS_LIVE_ENABLED=0`,
-  `PAID_FEATURES_READY=0`, and `MOA_AI_READY=0`.
+- Live checkout gates remain disabled: `TOSS_LIVE_ENABLED=0` and
+  `PAID_FEATURES_READY=0`. The verified AI gate is `MOA_AI_READY=1`.
 - Public production domain remains `https://moa-studio.pages.dev`; no custom
   domain or redirect is planned for this launch.
 - Turnstile is created and server auth is enabled. UI login QA passes, and a
