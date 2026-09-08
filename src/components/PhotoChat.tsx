@@ -29,6 +29,7 @@ const personExamples = [
 interface Props {
   photo?: Photo;
   cardTitle: string;
+  cardPreview?: string;
   cardId: string;
   onReplace: (previous: Photo, next: Photo) => boolean;
   disabled: boolean;
@@ -79,7 +80,7 @@ export function PhotoChat(props: Props) {
   </>;
 }
 
-function PhotoChatPanel({ photo, cardTitle, onReplace, disabled, open, onClose, cardId, userId, onBusyChange, width, viewportWidth, onWidthChange }: Props & { open: boolean; onClose: () => void; width: number; viewportWidth: number; onWidthChange: (width: number) => void }) {
+function PhotoChatPanel({ photo, cardTitle, cardPreview, onReplace, disabled, open, onClose, cardId, userId, onBusyChange, width, viewportWidth, onWidthChange }: Props & { open: boolean; onClose: () => void; width: number; viewportWidth: number; onWidthChange: (width: number) => void }) {
   const resizeStart = useRef<{ x: number; width: number } | null>(null);
   const [resizing, setResizing] = useState(false);
   const widthBounds = chatWidthBounds(viewportWidth);
@@ -625,11 +626,11 @@ function PhotoChatPanel({ photo, cardTitle, onReplace, disabled, open, onClose, 
     }}><span aria-hidden="true" /></div>
     <header data-tutorial="photo-chat" className="photo-chat-header"><div><h2 id="photo-chat-title">사진 생성·수정</h2></div><button className="photo-chat-close" type="button" aria-label="AI 수정 패널 닫기" onClick={closePanel}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header>
     <div data-tutorial="chat-card" className="photo-chat-target-bar">
-      <button className="photo-chat-target-button" type="button" disabled={!photo} aria-expanded={targetPreviewOpen} aria-controls="photo-chat-target-preview" onClick={() => setTargetPreviewOpen(value => !value)}>
-        {photo ? <img src={photo.dataUrl} alt="" aria-hidden="true" /> : <span className="photo-chat-target-placeholder" aria-hidden="true" />}
+      <button className="photo-chat-target-button" type="button" disabled={!cardPreview} aria-expanded={targetPreviewOpen} aria-controls="photo-chat-target-preview" onClick={() => setTargetPreviewOpen(value => !value)}>
+        {cardPreview ? <img src={cardPreview} alt="" aria-hidden="true" /> : <span className="photo-chat-target-placeholder" aria-hidden="true" />}
         <span><small>선택한 카드</small><strong>{cardTitle || '카드를 선택해 주세요'}</strong></span>
       </button>
-      {photo && targetPreviewOpen && <figure id="photo-chat-target-preview" className="photo-chat-target-preview"><img src={photo.dataUrl} alt="현재 카드에 사용하는 사진" /><figcaption>{photo.name}</figcaption></figure>}
+      {cardPreview && targetPreviewOpen && <figure id="photo-chat-target-preview" className="photo-chat-target-preview"><img src={cardPreview} alt={`${cardTitle || '선택한 카드'} 전체 미리보기`} /><figcaption>{cardTitle || '선택한 카드'}</figcaption></figure>}
     </div>
     <div className="photo-chat-stage">
       <div className="photo-chat-scroll" ref={scrollArea} onScroll={updateScrollPosition}>

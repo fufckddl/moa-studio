@@ -276,6 +276,7 @@ export function WorkspacePreview({ selectedCardId, onCardSelect: setSelectedCard
   }, []);
   const [feedback, setFeedback] = useState('');
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [chatCardPreview, setChatCardPreview] = useState<{ card: ContentCard; photo: Photo | undefined; brand: Brand; dataUrl: string } | null>(null);
   const selectedIndex = Math.max(0, pack.cards.findIndex((card) => card.id === selectedCardId));
   const selectedCard = pack.cards[selectedIndex] ?? pack.cards[0];
   const selectedPhoto = photos.find((photo) => photo.id === selectedCard?.imageId) ?? photos[0];
@@ -284,23 +285,27 @@ export function WorkspacePreview({ selectedCardId, onCardSelect: setSelectedCard
   useEffect(() => {
     let mounted = true;
     const target = canvasRef.current;
-    if (!target || !selectedCard || view !== 'cards') return;
+    if (!selectedCard) return;
 
     const offscreen = document.createElement('canvas');
     renderCard(offscreen, selectedCard, selectedPhoto, brand)
       .then(() => {
         if (!mounted) return;
-        target.width = offscreen.width;
-        target.height = offscreen.height;
-        const context = target.getContext('2d');
-        if (!context) throw new Error('미리보기 canvas를 사용할 수 없어요.');
-        context.clearRect(0, 0, target.width, target.height);
-        context.drawImage(offscreen, 0, 0);
+        setChatCardPreview({ card: selectedCard, photo: selectedPhoto, brand, dataUrl: offscreen.toDataURL('image/png') });
+        if (target && view === 'cards') {
+          target.width = offscreen.width;
+          target.height = offscreen.height;
+          const context = target.getContext('2d');
+          if (!context) throw new Error('미리보기 canvas를 사용할 수 없어요.');
+          context.clearRect(0, 0, target.width, target.height);
+          context.drawImage(offscreen, 0, 0);
+        }
         setFeedback('');
       })
       .catch(() => {
         if (!mounted) return;
-        target.getContext('2d')?.clearRect(0, 0, target.width, target.height);
+        setChatCardPreview(null);
+        target?.getContext('2d')?.clearRect(0, 0, target.width, target.height);
         setFeedback('선택한 사진을 미리보기에 불러오지 못했어요. 다른 사진을 선택해 주세요.');
       });
 
@@ -438,7 +443,7 @@ export function WorkspacePreview({ selectedCardId, onCardSelect: setSelectedCard
 
   return (
     <section className="preview-panel" aria-label="콘텐츠 미리보기">
-      <PhotoChat userId={chatUserId} onBusyChange={onChatBusyChange} cardId={selectedCard?.id ?? 'empty'} photo={selectedPhoto} cardTitle={selectedCard?.title ?? ''} onReplace={onPhotoReplace} disabled={photoEditingDisabled || exporting || readOnly} />
+      <PhotoChat userId={chatUserId} onBusyChange={onChatBusyChange} cardId={selectedCard?.id ?? 'empty'} photo={selectedPhoto} cardTitle={selectedCard?.title ?? ''} cardPreview={chatCardPreview?.card === selectedCard && chatCardPreview?.photo === selectedPhoto && chatCardPreview?.brand === brand ? chatCardPreview.dataUrl : undefined} onReplace={onPhotoReplace} disabled={photoEditingDisabled || exporting || readOnly} />
       <div className="preview-toolbar">
         <div className="tabs" data-tutorial="preview" role="tablist" aria-label="미리보기 유형">
           <TabButton active={view === 'cards'} icon="card" label="카드뉴스" onClick={() => chooseView('cards')} />

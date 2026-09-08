@@ -94,7 +94,7 @@ const steps: TutorialStep[] = [
     title: 'AI 사진 수정',
     body: '사진 수정 패널을 열면 선택한 카드 사진을 대화로 다듬거나 다시 사용할 인물을 만들 수 있습니다.',
   },
-  { id: 'chat-card', selector: '[data-tutorial="chat-card"]', title: '현재 작업 중인 카드', body: '선택한 카드의 사진과 이름이 채팅 상단에 고정돼요. 누르면 현재 사진을 크게 확인할 수 있습니다. 대화가 길어져도 작업 대상을 바로 확인하세요.' },
+  { id: 'chat-card', selector: '[data-tutorial="chat-card"]', title: '현재 작업 중인 카드', body: '문구와 디자인이 포함된 선택 카드가 채팅 상단에 고정돼요. 누르면 카드 전체를 크게 확인할 수 있습니다. 대화가 길어져도 작업 대상을 바로 확인하세요.' },
   {"id": "chat-modes", "selector": "[data-tutorial=\"chat-modes\"]", "title": "인물 생성과 AI 사진 수정", "body": "인물 생성은 원본 없이 다시 사용할 인물을 만듭니다. AI 사진 수정은 현재 카드의 사진을 바꾸는 기능이에요. 작업에 맞는 탭을 선택하세요."},
   {"id": "chat-references", "selector": "[data-tutorial=\"chat-references\"]", "title": "참고 이미지", "body": "AI 사진 수정에 참고할 이미지를 최대 3장 추가합니다. 분위기를 참고할지, 인물·제품을 참고할지 사진마다 지정할 수 있어요."},
   { id: 'chat-library', selector: '[data-tutorial="chat-library"]', title: '인물 보관함 바로 열기', body: '입력창 옆에서 저장한 인물을 꺼내 씁니다. 인물을 고르면 보관함이 접히고 AI 사진 수정의 참고 이미지에 추가돼요. 실제 카드 사진은 수정 결과를 적용할 때 바뀝니다.' },

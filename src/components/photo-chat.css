@@ -13,7 +13,7 @@
 .photo-chat-target-button { width: 100%; min-width: 0; display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: 10px; padding: 6px; border: 1px solid #d6ddd1; border-radius: 8px; background: #fffefa; color: #233c30; font: inherit; text-align: left; cursor: pointer; }
 .photo-chat-target-button:disabled { cursor: default; opacity: .68; }
 .photo-chat-target-button:focus-visible { outline: 2px solid #254a3b; outline-offset: 2px; }
-.photo-chat-target-button img, .photo-chat-target-placeholder { display: block; width: 44px; height: 48px; border-radius: 6px; object-fit: cover; background: #ede9df; }
+.photo-chat-target-button img, .photo-chat-target-placeholder { display: block; width: 44px; height: 48px; border-radius: 6px; object-fit: contain; background: #ede9df; }
 .photo-chat-target-button span { min-width: 0; display: grid; gap: 2px; }
 .photo-chat-target-button small { color: #68766c; font-size: 10px; line-height: 1.2; }
 .photo-chat-target-button strong { font-size: 12px; font-weight: 650; line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
