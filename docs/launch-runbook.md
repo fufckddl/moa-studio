@@ -33,14 +33,19 @@
 - A real AES256 encrypted local backup was created in the operator's
   `~/Moa Backups` directory: 4 DB dumps and 11 Storage objects. Restore dry-run
   decrypted and checksummed all 15 files successfully.
-- Full isolated Supabase DB/Storage replay remains unverified. A later disk check on 2026-09-08 shows about 15 GiB free, so the earlier space shortage is no longer the current blocker; restore compatibility and actual replay still need validation. Docker image
-  preparation exhausted local disk space; task-owned downloaded images were
-  removed and Docker stopped. Existing Docker images were retained. The backup
-  used the installed host PostgreSQL tools with the CLI-generated dump script.
-- The current dump contains complete managed `auth`/`storage` schema DDL;
-  replay into a fresh Supabase project needs a separate compatibility pass.
-  Managed schema customizations and Storage metadata preservation must be
-  checked before considering restore readiness complete.
+- On 2026-09-08, the encrypted archive was actually restored into a local Supabase
+  isolated on loopback. All backed-up column values in 30 tables matched, and all
+  11 Storage files were downloaded again with matching SHA-256 hashes. Restored
+  account login, workspace isolation, photo ownership and both rollback SQL suites
+  passed. App object permissions, 11 functions and 21 policies match the source.
+- The replay fixed managed DDL collisions by selecting app schema/data from the
+  custom dump and preserving target platform objects. Storage logical metadata is
+  restored while physical file versions remain target-generated. The existing
+  Realtime publication migration was applied separately. See
+  [the restore drill record](restore-drill-2026-09-08.md) for scope and evidence.
+- [Free offsite storage research](free-offsite-backup.md) recommends Backblaze B2.
+  B2/R2 S3 endpoint support is implemented, but no external account/bucket/key has
+  been connected, so scheduled offsite uploads remain inactive.
 - Supabase's own scheduled backups are unavailable on the current Free plan.
 - Operational checks outside search and payments pass: both Storage buckets are
   private (`moa-photos` 10 objects, `moa-people` 1 object), an unauthenticated
@@ -67,6 +72,7 @@ GitHub Actions backup secrets:
 - `BACKUP_ENCRYPTION_PASSPHRASE`
 - `BACKUP_DESTINATION_URI`
 - `BACKUP_AWS_ACCESS_KEY_ID`, `BACKUP_AWS_SECRET_ACCESS_KEY`, `BACKUP_AWS_REGION` when `BACKUP_DESTINATION_URI` starts with `s3://`
+- `BACKUP_AWS_ENDPOINT_URL` for B2/R2; leave unset for AWS S3
 
 Backup defaults:
 

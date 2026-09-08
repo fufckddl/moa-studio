@@ -14,22 +14,23 @@ Supabase의 데이터베이스 백업은 Storage 객체 메타데이터는 포�
 
 ## 2026-09-08 실제 실행 결과
 
-- 사용자 승인 후 DB 비밀번호를 재설정하고 TLS Postgres 접속을 확인했습니다.
-- DB URL, Storage 관리자 키, 백업 암호화 암호를 GitHub Actions Secret에 저장했습니다.
-- `~/Moa Backups/moa-studio-supabase-2026-09-08T02-22-58-032Z.tar.gz.gpg`
-  백업을 생성했습니다. AES256 암호화, DB 덤프 4개, 사진 파일 11개입니다.
-- 실제 복구 dry run에서 암호 해제, tar 경로와 링크 검사, 15개 파일 SHA256
-  검증이 통과했습니다. 이 결과는 DB/Storage에 실제 쓰는 복구 검증을 뜻하지 않습니다.
-- Docker 이미지 준비 중 디스크 공간이 소진되어 격리 Supabase 전체 복구를
-  실행하지 못했습니다. 이번에 다운로드한 이미지 세 개를 제거하고 Docker를
-  종료했습니다. 기존 사용자 이미지는 유지했습니다. DB 백업은 CLI가 생성한
-  dump 스크립트와 기존 호스트 PostgreSQL 도구로 완료했습니다.
-- 현재 `schema.sql`은 managed `auth`/`storage` DDL을 포함합니다. 새 Supabase의
-  기존 managed 객체와 충돌하는지 확인하고, 앱 schema 및 managed 정책/트리거를
-  분리해 복구하는 검증이 남아 있습니다. Storage API 업로드는 서버 metadata와
-  timestamps를 갱신하므로 백업 당시 metadata의 완전한 보존도 아직 보장하지 않습니다.
-- 외부 비공개 백업 대상은 미설정입니다. 현재 파일은 이 Mac에만 있으며,
-  GitHub 예약 백업은 외부 대상 설정이 완료될 때까지 건너뜁니다.
+- AES256 암호화 백업 `~/Moa Backups/moa-studio-supabase-2026-09-08T02-22-58-032Z.tar.gz.gpg`를
+  격리된 로컬 Supabase PostgreSQL 17 환경에 실제 복원했습니다. DB 덤프 4개와 사진 11개를 포함합니다.
+- 암호 해제와 아카이브 안전성 검사, 파일 15개 SHA-256 검증을 통과했습니다.
+- 복원한 테이블 30개의 백업 열 값 전체를 양방향 `EXCEPT ALL`로 대조했습니다.
+  Storage 파일 11개는 복구 API에서 다시 다운로드해 SHA-256 일치를 확인했습니다.
+- 사용자 4명, 작업공간 3개가 복구됐습니다. 복구 계정 로그인, 본인 작업공간의 정확한 내용,
+  타 사용자/비로그인 접근 차단, 본인 사진 다운로드, 타 사용자 사진 차단을 실제 API로 검증했습니다.
+  관리자 링크 생성 API를 이용한 로컬 인증 테스트이며 이메일은 발송하지 않았습니다.
+- 원본과 테이블/시퀀스 권한 8개, 열 권한 1개, 함수 11개, 접근 정책 21개가 일치합니다.
+  기존 Realtime 마이그레이션을 별도로 적용해 `public.workspaces` publication도 확인했습니다.
+- `supabase/tests/rls.sql`과 `supabase/tests/moa_content_ai.sql`의 rollback 기반 검증이 통과했습니다.
+  이미 복구된 대상에 다시 실행하면 기존 데이터를 덮어쓰지 않고 중단하는 것도 확인했습니다.
+- Storage의 ID, 소유자, 원래 시각과 metadata는 보존합니다. 실제 파일 위치를 가리키는 내부
+  `version`만 새 저장소의 업로드 버전을 유지해야 다운로드가 정상 작동합니다.
+- 외부 정기 업로드는 아직 미설정입니다. [무료 저장소 비교](free-offsite-backup.md)에서는
+  Backblaze B2를 추천하며, B2/R2용 S3 endpoint 연결 코드를 준비했습니다.
+- 상세 범위와 남은 플랫폼 설정은 [실제 복구 검증 기록](restore-drill-2026-09-08.md)에 있습니다.
 
 ## 필요한 비밀값
 
@@ -44,6 +45,7 @@ GitHub Actions의 `Supabase Backup` workflow가 사용하는 값입니다. 저�
 | `BACKUP_AWS_ACCESS_KEY_ID` | GitHub Secret | `BACKUP_DESTINATION_URI`가 `s3://`일 때 필요합니다. 백업 버킷 쓰기와 보관 기간 삭제 권한만 부여합니다. |
 | `BACKUP_AWS_SECRET_ACCESS_KEY` | GitHub Secret | `s3://` 대상용 AWS secret입니다. |
 | `BACKUP_AWS_REGION` | GitHub Secret | S3 버킷 리전입니다. |
+| `BACKUP_AWS_ENDPOINT_URL` | GitHub Secret | B2/R2의 HTTPS S3 endpoint입니다. AWS S3에서는 비워둡니다. |
 
 CI 빌드 검증에는 별도로 `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`를 GitHub Actions variable 또는 secret으로 설정합니다. 이 두 값은 브라우저용 공개 설정이지만, workflow가 없으면 빌드 검증을 실패시켜 배포 전 누락을 드러냅니다.
 
@@ -51,7 +53,7 @@ CI 빌드 검증에는 별도로 `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE
 
 `SUPABASE_STORAGE_BUCKETS`는 기본으로 설정하지 않습니다. 비어 있으면 스크립트가 Storage API로 모든 bucket을 조회하고, 폴더별 페이지를 순회해 파일을 백업합니다. 특정 bucket만 백업해야 하는 임시 조사 때만 쉼표 구분 값으로 override합니다.
 
-백업 실행 환경에는 `supabase`, `psql`, `pg_dump`, `gpg`, `tar`가 필요합니다. `s3://` 대상을 쓰면 `aws` CLI도 필요합니다. GitHub Actions workflow는 `postgresql-client`를 설치해서 `psql`과 `pg_dump`를 제공합니다.
+백업 실행 환경에는 `supabase`, `psql`, `pg_dump`, `gpg`, `tar`가 필요합니다. 실제 복구에는 custom dump를 읽을 수 있는 같은 버전 이상의 `pg_restore`도 필요합니다. `s3://` 대상을 쓰면 `aws` CLI도 필요합니다. GitHub Actions workflow는 공식 PGDG 저장소의 `postgresql-client-18`을 설치해서 운영 PostgreSQL 17보다 오래된 dump 도구가 선택되지 않도록 합니다.
 
 ## 백업 실행
 
@@ -99,15 +101,16 @@ GitHub Actions:
 
 Supabase CLI 문서는 `supabase db dump`가 Supabase 내부 권한 문제를 줄이기 위해 managed schema를 필터링한다고 설명합니다. 같은 문서와 migration guide는 roles, schema, data를 별도 파일로 export하고 새 대상에서 `psql`로 restore하는 절차를 안내합니다. 따라서 이 도구는 두 종류의 DB artifact를 함께 보관합니다.
 
-- `roles.sql`, `schema.sql`, `data.sql`: Supabase CLI가 만든 SQL dump입니다. 자동 복구 스크립트가 기본으로 사용하는 파일입니다.
-- `selected-schemas.pg_dump`: `pg_dump --format=custom`로 만든 raw logical dump입니다. Supabase CLI가 managed schema를 필터링하더라도 `auth`, `storage`, `moa_private` 같은 발견된 schema의 구조와 데이터를 보존하기 위한 수동 복구/검사용 artifact입니다.
+- `roles.sql`, `schema.sql`, `data.sql`: Supabase CLI의 SQL dump입니다. `schema.sql`에서 앱 권한을 추출하고, `data.sql`은 복구 데이터와 Storage metadata를 검증하는 기준으로 사용합니다. managed DDL과 플랫폼 role grant는 통째로 적용하지 않습니다.
+- `selected-schemas.pg_dump`: `pg_dump --format=custom` raw logical dump입니다. 자동 복구는 TOC를 필터링해 앱 schema, 인증 데이터, bucket과 앱 Storage 정책을 선택적으로 적용합니다. managed schema 전체 구조는 참고용으로 보존합니다.
 
-`auth`와 `storage` managed schema가 새 Supabase 프로젝트에서 그대로 복구 가능한지는 restore drill로 확인해야 합니다. Supabase managed table 소유자와 기본 권한은 플랫폼 서비스가 기대하는 값이 있으므로, raw dump를 운영 프로젝트에 바로 적용하지 않습니다.
+전체 managed DDL을 새 Supabase에 적용하면 기존 `auth.aal_level` type 등과 충돌합니다. 실제 실습에서 이를 확인했으므로 자동 복구는 대상 플랫폼의 managed DDL, migration 이력, 기본 role을 유지합니다. 현재 Moa 앱의 데이터/정책 복원을 검증한 절차이며, 다른 플랫폼 버전이나 새 managed schema 변경은 별도 호환성 검증이 필요합니다.
 
 현재 read-only metadata 기준으로 운영 DB에는 `auth.users`, `auth.identities`, `auth.sessions`, `storage.buckets`, `storage.objects`, `public.workspaces`, `public.payment_orders`, `public.moa_ai_requests`, `public.photo_chat_history`, `public.generated_people`가 있습니다. `moa_private` schema는 현재 보이지 않지만, 나중에 생성되면 기본 optional schema 설정으로 백업에 포함됩니다.
 
 DB dump에 포함되지 않는 플랫폼 설정은 별도로 재설정해야 합니다.
 
+- Realtime publication membership: `supabase/migrations/20260907082806_enable_workspace_realtime.sql`을 복구 대상에 별도 적용
 - Supabase Auth Site URL, redirect URL, SMTP 설정
 - OAuth provider 설정
 - Edge Function secrets
@@ -163,18 +166,28 @@ RESTORE_ENCRYPTION_PASSPHRASE='...' \
 node scripts/restore-supabase.mjs --execute
 ```
 
-`--execute`는 `psql --single-transaction`으로 `roles.sql`, `schema.sql`, `SET session_replication_role = replica`, `data.sql`을 적용하고, Storage 파일을 같은 bucket/object path로 업로드합니다. 대상 프로젝트는 비어 있는 새 프로젝트로 준비합니다. 기존 데이터가 있는 프로젝트에 덮어쓰는 방식으로 운영하지 않습니다.
+`--execute`는 다음 순서로 동작합니다.
 
-`selected-schemas.pg_dump`는 자동으로 적용하지 않습니다. Supabase managed schema 충돌, 권한, 소유자 문제를 사람이 확인해야 하는 수동 복구 artifact입니다.
+1. custom dump TOC에서 앱 DDL, 앱 Storage 정책, 인증 데이터, bucket 데이터를 선택합니다.
+2. 앱 schema와 대상 인증/bucket 테이블이 비어 있는지 검사합니다. 기존 데이터는 삭제하지 않습니다.
+3. 단일 DB transaction으로 앱 객체와 원본 앱 권한, 선택한 데이터를 복원합니다. 기본 role과 managed DDL은 유지합니다.
+4. Storage API로 사진 바이트를 업로드하고, SQL staging으로 원래 ID/소유자/시각/metadata를 맞춥니다. 내부 파일 `version`은 대상 값을 유지합니다.
+5. 백업 당시 열 값 전체와 사진 다운로드 SHA-256을 대조한 후 성공을 표시합니다.
+
+벡터/분석 bucket, multipart 업로드, `auth.instances`처럼 자동 복구에서 제외한 내부 테이블에 실제 데이터가 있으면 무시하지 않고 중단합니다. 현재 실습 백업에서는 이 테이블들이 비어 있었습니다.
+
+DB 단계는 transaction을 사용하지만 DB와 Storage API 전체를 하나의 transaction으로 묶을 수는 없습니다. Storage 단계 실패 시 부분 복구 대상으로 간주하고, 깨끗한 격리 대상을 다시 준비해 실행합니다. 복구 스크립트는 이미 앱 테이블이 있는 대상의 재실행을 거부합니다.
+
+로컬 실습에서는 loopback에만 바인딩된 Supabase 컨테이너와 로컬 `supabase_admin` 연결을 사용했습니다. hosted 프로젝트에서 같은 권한/플랫폼 호환성이 검증됐다는 뜻은 아닙니다. 원본 JWT/API key, SMTP, OAuth, Edge Function secrets와 외부 AI/결제 연결은 DB 복구와 별도로 설정합니다.
 
 ## 복구 검증 체크리스트
 
 1. 복구 dry run이 checksum mismatch 없이 통과하는지 확인합니다.
 2. 격리 프로젝트에 `--execute` 복구를 수행합니다.
-3. Supabase SQL Editor에서 핵심 테이블 row count를 운영 백업 manifest 시점과 비교합니다.
+3. 자동 검증 로그에서 복원한 테이블의 백업 열 값 전체 비교 결과를 확인합니다.
 4. `storage.objects`의 bucket별 객체 수를 manifest의 `storage.object_count`와 비교합니다.
-5. 임의의 Storage 객체를 signed URL로 내려받아 manifest hash와 비교합니다.
-6. 격리 프로젝트 URL과 publishable key로 `.env.production.local`을 임시 구성해 `npm run build && npm run check:cloud`를 실행합니다.
+5. 모든 Storage 객체를 복구 API로 내려받아 manifest SHA-256과 비교했는지 확인합니다.
+6. 복구 계정 인증, 본인 작업공간 읽기, 타 사용자 접근 차단과 앱 SQL 통합 테스트를 확인합니다. UI 검증이 필요하면 별도 로컬 환경변수로 격리 대상만 연결합니다.
 7. 이메일, OAuth, SMTP, Edge Function secrets, URL redirect 설정은 DB dump에 포함되지 않는 플랫폼 설정입니다. Supabase 대시보드와 운영 runbook 기준으로 별도 재설정합니다.
 8. 결제 보관 기간 또는 `moa_private` schema가 추가된 뒤에는 `manifest.database.schemas`에 새 schema가 들어갔는지 확인합니다.
 9. `selected-schemas.pg_dump`가 manifest에 있고 checksum 검증을 통과했는지 확인합니다.

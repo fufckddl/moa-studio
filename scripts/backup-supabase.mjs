@@ -7,6 +7,12 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
 import {
+  awsEndpointArgs,
+  s3CopyArgs,
+  s3DeleteObjectArgs,
+  s3ListObjectsArgs,
+} from './backup-s3.mjs';
+import {
   fileEntry,
   assertSafePathSegment,
   assertSafeStorageObjectName,
@@ -83,7 +89,10 @@ async function ensureCommand(command) {
 
 async function checkRequiredCommands(destination) {
   const commands = ['gpg', 'tar', 'supabase', 'psql', 'pg_dump'];
-  if (destination.type === 's3') commands.push('aws');
+  if (destination.type === 's3') {
+    awsEndpointArgs();
+    commands.push('aws');
+  }
   for (const command of commands) {
     await ensureCommand(command);
   }
@@ -288,8 +297,8 @@ async function copyToDestination(encryptedArchive, shaPath) {
     return destination.display;
   }
   const keyPrefix = destination.prefix ? `${destination.prefix}/` : '';
-  await run('aws', ['s3', 'cp', encryptedArchive, `s3://${destination.bucket}/${keyPrefix}${archiveName}`, '--only-show-errors']);
-  await run('aws', ['s3', 'cp', shaPath, `s3://${destination.bucket}/${keyPrefix}${basename(shaPath)}`, '--only-show-errors']);
+  await run('aws', s3CopyArgs(encryptedArchive, `s3://${destination.bucket}/${keyPrefix}${archiveName}`));
+  await run('aws', s3CopyArgs(shaPath, `s3://${destination.bucket}/${keyPrefix}${basename(shaPath)}`));
   return destination.display;
 }
 
@@ -308,9 +317,8 @@ async function applyRetention(destinationRaw) {
     }
     return;
   }
-  const prefix = destination.prefix ? `${destination.prefix}/` : '';
   const { stdout } = await new Promise((resolve, reject) => {
-    const child = spawn('aws', ['s3api', 'list-objects-v2', '--bucket', destination.bucket, '--prefix', `${prefix}moa-studio-supabase-`, '--output', 'json'], { stdio: ['ignore', 'pipe', 'inherit'] });
+    const child = spawn('aws', s3ListObjectsArgs(destination), { stdio: ['ignore', 'pipe', 'inherit'] });
     let stdout = '';
     child.stdout.on('data', chunk => { stdout += chunk; });
     child.on('error', reject);
@@ -319,7 +327,7 @@ async function applyRetention(destinationRaw) {
   const listed = JSON.parse(stdout || '{}').Contents ?? [];
   for (const object of listed) {
     if (Date.parse(object.LastModified) < cutoff) {
-      await run('aws', ['s3api', 'delete-object', '--bucket', destination.bucket, '--key', object.Key, '--output', 'json']);
+      await run('aws', s3DeleteObjectArgs(destination.bucket, object.Key));
     }
   }
 }
