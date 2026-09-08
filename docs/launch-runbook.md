@@ -218,6 +218,24 @@ Within the first day:
 - Confirm one authenticated save/load path and one private Storage download path.
 - Confirm no service role key, Toss secret, OpenAI key, or backup passphrase appears in public build files or logs.
 
+## Sitemap response verification — 2026-09-08
+
+- Explicitly set `/sitemap.xml` to `Content-Type: application/xml; charset=utf-8`
+  in the Cloudflare Pages headers and deployed the change.
+- Production returned HTTP 200 with the XML declaration and sitemap namespace;
+  all seven listed URLs returned HTTP 200 without redirects.
+- Search Console's live URL test at 13:27 KST returned HTTP 200 and
+  `application/xml`. Its tested-page source contained the complete XML sitemap,
+  with no HTML document wrapper.
+- The [referenced community discussion](https://support.google.com/webmasters/thread/282179767?hl=ko)
+  suggests checking XML versus HTML response types, but does not establish a
+  confirmed fix. Production already served XML before the explicit header, so
+  this change does not establish the cause of the sitemap report error.
+- The sitemap report still showed “Couldn't fetch” during verification. A
+  successful live URL test does not establish successful sitemap processing.
+- Resubmitted `sitemap.xml` once after deployment; Search Console confirmed
+  submission, while the report still displayed “Couldn't fetch” immediately after.
+
 ## Incident restore posture
 
 Do not restore directly into production during the first response. First decrypt and verify the archive, restore into an isolated project, compare data and Storage counts, then decide whether to promote the isolated project or plan a controlled production migration. Keep the production project intact until the recovery target has been validated.
