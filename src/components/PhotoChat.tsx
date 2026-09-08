@@ -57,7 +57,7 @@ export function PhotoChat(props: Props) {
     return () => window.removeEventListener('moa:tutorial:photo-chat', handleTutorial);
   }, []);
   const [viewportWidth, setViewportWidth] = useState(() => document.documentElement.clientWidth);
-  const [preferredWidth, setPreferredWidth] = useState(390);
+  const [preferredWidth, setPreferredWidth] = useState(520);
   const width = clampChatWidth(preferredWidth, viewportWidth);
   useEffect(() => {
     const resize = () => setViewportWidth(document.documentElement.clientWidth);
