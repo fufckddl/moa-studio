@@ -192,7 +192,7 @@ body:has(.photo-chat-panel.is-resizing) { cursor: col-resize; user-select: none;
 @media (max-width: 800px) and (max-height: 600px) {
   .editor-tutorial-active .photo-chat-header { padding: 6px 12px; }
   .editor-tutorial-active .photo-chat-header h2 { font-size: 15px; }
-  .editor-tutorial-active .photo-chat-close { width: 28px; height: 28px; }
+  .editor-tutorial-active .photo-chat-close { width: 30px; height: 30px; }
 }
 
 /* Mobile chat opens as a full-width bottom sheet without squeezing the editor. */
@@ -210,34 +210,107 @@ body:has(.photo-chat-panel.is-resizing) { cursor: col-resize; user-select: none;
     max-height: 100dvh;
     border-left: 0;
     border-top: 1px solid #d9dfd7;
-    border-radius: 20px 20px 0 0;
+    border-radius: 16px 16px 0 0;
     box-shadow: 0 -10px 40px #17342b24;
     animation-name: photo-chat-slide-up;
   }
-  .photo-chat-header { flex-shrink: 0; }
+  .photo-chat-header { flex-shrink: 0; gap: 10px; padding: 12px 14px; }
+  .photo-chat-header h2 { font-size: 18px; }
+  .photo-chat-close { width: 34px; height: 34px; }
+  .photo-chat-scroll { padding: 12px 14px 14px; }
+  .photo-chat-target { gap: 4px; margin-bottom: 10px; }
+  .photo-chat-target span { font-size: 11px; }
+  .photo-chat-target strong { font-size: 13px; line-height: 1.4; }
+  .photo-chat-image { margin-bottom: 14px; border-radius: 8px; }
+  .photo-chat-image:not(.is-review) { grid-template-columns: 70px minmax(0, 1fr); }
+  .photo-chat-image:not(.is-review) img { height: 76px; }
+  .photo-chat-image figcaption { padding: 7px 9px; font-size: 11px; }
+  .photo-chat-messages { gap: 10px; }
+  .photo-chat-message { padding: 11px 12px; border-radius: 10px; font-size: 13px; line-height: 1.55; }
+  .photo-chat-message.user { margin-left: 20px; }
+  .photo-chat-message-refs { gap: 5px; margin-top: 8px; }
+  .photo-chat-message-refs img { width: 36px; height: 36px; }
+  .photo-chat-suggestions { gap: 6px; margin-top: 12px; }
+  .photo-chat-suggestions button { padding: 8px 10px; font-size: 11px; line-height: 1.45; }
   .photo-chat-resize { display: none; }
   .app-shell:has(.photo-chat-panel:not([hidden])) .editor-tutorial-replay { display: none; }
-  .photo-chat-composer { padding-bottom: max(14px, env(safe-area-inset-bottom)); }
-  .photo-chat-target-bar { padding: 8px 14px; }
-  .photo-chat-target-preview img { height: min(150px, 22dvh); }
-  .photo-chat-library { left: 14px; right: 14px; max-height: calc(100% - 12px); }
-  .photo-chat-library-list { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; max-height: none; overflow: visible; padding-right: 0; }
+  .photo-chat-composer { padding: 8px 14px max(12px, env(safe-area-inset-bottom)); }
+  .photo-chat-prompt-top { gap: 8px; margin-bottom: 4px; }
+  .photo-chat-composer label { font-size: 11px; }
+  .photo-chat-library-toggle { min-height: 30px; padding: 4px 8px; font-size: 10px; }
+  .photo-chat-composer textarea { min-height: 50px; max-height: 112px; padding: 7px 9px; font-size: 12px; line-height: 1.45; }
+  .photo-chat-mode { gap: 3px; margin-bottom: 7px; padding: 2px; }
+  .photo-chat-mode button { min-height: 30px; font-size: 11px; }
+  .photo-chat-person-note { margin: 5px 0 6px; font-size: 10px; line-height: 1.45; }
+  .photo-chat-send-row { gap: 8px; margin-top: 5px; }
+  .photo-chat-send-row span { font-size: 10px; }
+  .photo-chat-composer .primary-button { min-height: 30px; padding: 5px 10px; font-size: 11px; }
+  .photo-chat-hint { margin-top: 5px; font-size: 9px; line-height: 1.4; }
+  .photo-chat-availability { margin: 5px 0; padding: 6px 8px; font-size: 10px; line-height: 1.4; }
+  .photo-chat-availability button { min-height: 30px; }
+  .photo-chat-references { gap: 6px; margin-bottom: 8px; }
+  .photo-chat-reference-top { gap: 8px; font-size: 11px; }
+  .photo-chat-reference-top > span { gap: 6px; }
+  .photo-chat-reference-top .photo-chat-attach { width: 30px; height: 30px; border-radius: 7px; }
+  .photo-chat-reference-list { gap: 6px; padding-bottom: 3px; }
+  .photo-chat-reference { flex-basis: 154px; grid-template-columns: 34px minmax(0, 1fr); gap: 5px; padding: 5px; }
+  .photo-chat-reference img { width: 34px; height: 38px; }
+  .photo-chat-reference strong { padding-right: 28px; font-size: 10px; }
+  .photo-chat-reference select { min-height: 30px; font-size: 10px; }
+  .photo-chat-reference button { width: 30px; height: 30px; top: 2px; right: 2px; font-size: 15px; }
+  .photo-chat-target-bar { padding: 7px 12px; }
+  .photo-chat-target-button { grid-template-columns: 38px minmax(0, 1fr); gap: 8px; padding: 5px; }
+  .photo-chat-target-button img, .photo-chat-target-placeholder { width: 38px; height: 42px; border-radius: 5px; }
+  .photo-chat-target-button small { font-size: 9px; }
+  .photo-chat-target-button strong { font-size: 11px; }
+  .photo-chat-target-preview { margin-top: 6px; }
+  .photo-chat-target-preview img { height: min(128px, 20dvh); }
+  .photo-chat-library { left: 12px; right: 12px; bottom: 6px; max-height: calc(100% - 10px); padding: 10px; }
+  .photo-chat-library-top { gap: 6px; margin-bottom: 6px; }
+  .photo-chat-library h3 { font-size: 12px; }
+  .photo-chat-library p { font-size: 10px; line-height: 1.45; }
+  .photo-chat-library-top button { min-height: 30px; }
+  .photo-chat-library-list { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; align-items: start; max-height: none; overflow: visible; padding-right: 0; }
   .photo-chat-person { gap: 6px; padding: 6px; align-content: start; }
   .photo-chat-person-select { grid-template-columns: 1fr; gap: 5px; }
   .photo-chat-person-select img { width: 100%; height: auto; aspect-ratio: 3 / 4; }
   .photo-chat-person-select strong { font-size: 10px; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
   .photo-chat-person-select small { font-size: 9px; }
   .photo-chat-person-actions { display: flex; flex-wrap: wrap; gap: 4px; }
-  .photo-chat-person-actions .primary-button, .photo-chat-person-actions .ghost-button { flex: 1 1 auto; min-height: 28px; padding: 4px 5px; font-size: 10px; }
-  .photo-chat-tab { top: auto; bottom: 24px; padding: 13px 16px; writing-mode: horizontal-tb; }
+  .photo-chat-person-actions .primary-button, .photo-chat-person-actions .ghost-button { flex: 1 1 auto; min-height: 30px; padding: 4px 5px; font-size: 10px; }
+  .photo-chat-panel .ghost-button { min-height: 30px; padding: 7px 10px; font-size: 11px; }
+  .photo-chat-review { gap: 5px; margin-bottom: 7px; }
+  .photo-chat-review .primary-button, .photo-chat-review .ghost-button { min-height: 30px; padding: 5px 8px; font-size: 10px; }
+  .photo-chat-notice, .photo-chat-error, .photo-chat-progress, .photo-chat-empty { padding: 9px 0; font-size: 12px; line-height: 1.55; }
+  .photo-chat-history-actions { gap: 6px; margin-bottom: 12px; }
+  .photo-chat-autosave { gap: 6px; margin-bottom: 12px; font-size: 10px; line-height: 1.4; }
+  .photo-chat-tab { top: auto; bottom: 20px; padding: 10px 13px; font-size: 12px; writing-mode: horizontal-tb; }
   .photo-chat-tab-ai { flex-direction: row; line-height: 1; }
   .main-surface:has(.photo-chat-panel:not([hidden])) { margin-right: 0; }
 }
 @media (max-width: 800px) and (max-height: 600px) {
+  .photo-chat-header { padding: 8px 12px; }
+  .photo-chat-header h2 { font-size: 16px; }
+  .photo-chat-close { width: 32px; height: 32px; }
+  .photo-chat-target-bar { padding: 6px 12px; }
+  .photo-chat-target-button { grid-template-columns: 34px minmax(0, 1fr); gap: 8px; padding: 4px; }
+  .photo-chat-target-button img, .photo-chat-target-placeholder { width: 34px; height: 36px; border-radius: 5px; }
+  .photo-chat-target-button small { font-size: 9px; }
+  .photo-chat-target-button strong { font-size: 11px; }
+  .photo-chat-target-preview img { height: min(120px, 18dvh); }
+  .photo-chat-composer { max-height: 60dvh; overflow-y: auto; overscroll-behavior: contain; padding-top: 6px; padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+  .photo-chat-mode { margin-bottom: 6px; }
+  .photo-chat-person-note { margin-block: 4px 5px; }
+  .photo-chat-composer textarea { min-height: 44px; }
   .photo-chat-panel.is-picker-open .photo-chat-library-list { gap: 6px; }
   .photo-chat-panel.is-picker-open .photo-chat-person-select img { height: min(88px, 18dvh); aspect-ratio: 3 / 4; }
+  .photo-chat-panel.is-picker-open .photo-chat-composer { max-height: 42dvh; }
+  .photo-chat-panel.is-picker-open .photo-chat-mode { margin-bottom: 5px; }
+  .photo-chat-panel.is-picker-open .photo-chat-composer textarea { min-height: 38px; max-height: 64px; }
+  .photo-chat-panel.is-picker-open .photo-chat-send-row { margin-top: 4px; }
+  .photo-chat-panel.is-picker-open .photo-chat-send-row .primary-button { min-height: 30px; }
   .photo-chat-panel.is-picker-open .photo-chat-person-actions .primary-button,
-  .photo-chat-panel.is-picker-open .photo-chat-person-actions .ghost-button { min-height: 24px; padding: 3px 4px; font-size: 9px; }
+  .photo-chat-panel.is-picker-open .photo-chat-person-actions .ghost-button { min-height: 30px; padding: 3px 4px; font-size: 9px; }
 }
 @media (max-width: 800px) and (max-height: 420px) {
   .photo-chat-panel { height: 95dvh; }
@@ -248,7 +321,7 @@ body:has(.photo-chat-panel.is-resizing) { cursor: col-resize; user-select: none;
   .photo-chat-panel.is-picker-open .photo-chat-mode,
   .photo-chat-panel.is-picker-open .photo-chat-references { display: none; }
   .photo-chat-panel.is-picker-open .photo-chat-composer { padding: 4px 12px; max-height: 36dvh; }
-  .photo-chat-panel.is-picker-open .photo-chat-composer textarea { height: 38px; resize: none; }
+  .photo-chat-panel.is-picker-open .photo-chat-composer textarea { height: 38px; min-height: 38px; resize: none; }
   .photo-chat-panel.is-picker-open .photo-chat-library { padding: 8px; bottom: 4px; max-height: calc(100% - 8px); }
 }
 @media (max-width: 800px) and (prefers-reduced-motion: reduce) {

@@ -809,6 +809,80 @@
   margin: 0 0 20px;
 }
 
+/* Compact mobile controls without changing the exported card typography. */
+@media (max-width: 800px) {
+  .app-shell header.studio-header { padding: 10px 12px 0; gap: 0 8px; }
+  .app-shell .studio-header .brand-mark strong { font-size: 24px; }
+  .app-shell .studio-header .brand-mark span { font-size: 13px; }
+  .app-shell .studio-header .side-nav { margin-top: 6px; }
+  .app-shell .studio-header .nav-button { min-height: 38px; font-size: 11px; }
+  .app-shell .studio-header-account { padding-bottom: 8px; }
+  .app-shell .studio-account-button { min-height: 30px; padding: 5px 8px; font-size: 11px; }
+  .app-shell .page-intro { padding: 18px 12px 14px; }
+  .app-shell .page-intro h1 { font-size: 24px; }
+  .app-shell .page-intro p { margin-top: 8px; font-size: 13px; line-height: 1.6; }
+  .app-shell .workbench { gap: 12px; padding: 0 12px 24px; }
+  .app-shell .brief-panel, .app-shell .preview-panel { padding: 14px; }
+  .app-shell .preview-toolbar { gap: 8px; min-height: 34px; margin-bottom: 12px; }
+  .app-shell .tab-button { height: 34px; font-size: 11px; }
+  .app-shell .workbench .primary-button,
+  .app-shell .workbench .ghost-button,
+  .app-shell .brand-settings-page .primary-button,
+  .app-shell .brand-settings-page .ghost-button { min-height: 36px; padding: 6px 10px; gap: 6px; font-size: 12px; }
+  .app-shell .panel-step + .panel-step { margin-top: 18px; padding-top: 18px; }
+  .app-shell .panel-step h2 { margin-bottom: 10px; font-size: 13px; }
+  .app-shell .panel-step h2 span { font-size: 11px; }
+  .app-shell .field, .app-shell .field-label { gap: 5px; margin-bottom: 10px; font-size: 12px; }
+  .app-shell .field b { font-size: 12px; }
+  .app-shell .field em, .app-shell .field-help, .app-shell .optional-label { font-size: 11px; }
+  .app-shell .field input, .app-shell .field select, .app-shell .field-label input { height: 36px; padding-inline: 9px; }
+  .app-shell .field textarea { min-height: 72px; padding: 8px 9px; line-height: 1.6; }
+  .app-shell .field input[type="color"] { min-height: 36px; padding: 3px; }
+  .app-shell .field input[type="range"] { padding: 0; }
+  .app-shell .photo-strip { gap: 8px; margin-bottom: 8px; }
+  .app-shell .photo-thumb { flex-basis: 54px; width: 54px; }
+  .app-shell .drop-zone { min-height: 46px; padding: 7px 9px; column-gap: 8px; }
+  .app-shell .drop-zone strong { font-size: 12px; }
+  .app-shell .segmented { gap: 6px; margin-bottom: 9px; }
+  .app-shell .segmented button { height: 36px; font-size: 12px; }
+  .app-shell .schedule-toggle { gap: 7px; font-size: 12px; margin-bottom: 10px; }
+  .app-shell .edit-toggle { min-height: 36px; padding: 7px 12px; font-size: 12px; }
+  .app-shell .edit-panel { padding: 12px; }
+  .app-shell .card-workspace { gap: 12px; }
+  .app-shell .card-actions, .app-shell .editor-actions,
+  .app-shell .workspace-actions, .app-shell .schedule-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+  .app-shell .card-actions .ghost-button, .app-shell .editor-actions .ghost-button,
+  .app-shell .workspace-actions .ghost-button, .app-shell .schedule-actions .ghost-button { width: auto; flex: 1 1 auto; }
+  .app-shell .slide-controls .card-slide-strip .slide-thumb { flex-basis: 72px; }
+  .app-shell .slide-controls strong { font-size: 11px; }
+  .app-shell .usage-panel { margin: 0 12px 12px; padding: 12px; gap: 10px; }
+  .app-shell .usage-panel.compact { padding: 8px 10px; min-height: 42px; }
+  .app-shell .usage-panel.compact span { font-size: 11px; }
+  .app-shell .brand-settings-page { padding: 12px 12px 0; }
+  .app-shell .brand-settings-page .page-intro { padding: 14px 0 18px; }
+  .app-shell .brand-settings-page .brand-form { padding: 16px; }
+  .app-shell .brand-profile-tab { min-height: 32px; padding: 0 9px; font-size: 12px; }
+  .app-shell .library-surface { padding: 20px 12px 28px; }
+  .app-shell .library-hero { gap: 12px; margin-bottom: 18px; }
+  .app-shell .library-hero h1 { font-size: 28px; }
+  .app-shell .library-hero p { margin-top: 8px; font-size: 13px; }
+  .app-shell .library-tools { flex-direction: column; align-items: stretch; gap: 8px; margin-bottom: 18px; }
+  .app-shell .library-search { width: 100%; min-height: 40px; padding: 0 12px; gap: 8px; }
+  .app-shell .library-search input { font-size: 13px; }
+  .app-shell .library-sort-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .app-shell .library-sort-row p { grid-column: 1 / -1; margin: 0; font-size: 12px; }
+  .app-shell .library-sort select,
+  .app-shell .library-brand-filter-slot .library-filter select { width: 100%; height: 38px; padding: 0 28px 0 10px; background-position: right 8px center; font-size: 12px; }
+  .app-shell .library-create { min-width: 0; min-height: 36px; padding: 6px 12px; font-size: 12px; }
+  .app-shell .library-surface .project-meta { padding: 14px; gap: 8px; }
+  .app-shell .library-surface .project-meta h2 { font-size: 16px; }
+  .app-shell .library-empty, .app-shell .library-empty.compact { grid-template-columns: 1fr; padding: 22px 16px; gap: 16px; text-align: center; }
+  .app-shell .empty-folder { width: 104px; height: 80px; }
+  .app-shell .library-empty h2 { font-size: 22px; }
+  .app-shell .library-empty p { margin: 8px 0 16px; font-size: 13px; line-height: 1.6; }
+  .app-shell .library-surface .library-empty-action { min-height: 36px; padding: 6px 12px; font-size: 12px; }
+}
+
 @media (max-width: 980px) {
   .brand-settings-page {
     padding: 20px 20px 0;
