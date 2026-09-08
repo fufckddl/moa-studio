@@ -384,7 +384,7 @@ body:has(.photo-chat-panel.is-resizing) { cursor: col-resize; user-select: none;
   .photo-chat-panel .photo-chat-mode button { font-size: 12px; }
   .photo-chat-panel .photo-chat-prompt-top { grid-column: 2; grid-row: 1; justify-content: flex-end; }
   .photo-chat-panel .photo-chat-prompt-top label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-  .photo-chat-panel .photo-chat-composer textarea { grid-column: 1; grid-row: 2; font-size: 13px; }
+  .photo-chat-panel .photo-chat-composer textarea { grid-column: 1; grid-row: 2; height: 76px; min-height: 76px; max-height: 160px; padding: 10px 12px; font-size: 14px; line-height: 1.6; }
   .photo-chat-panel .photo-chat-send-row { grid-column: 2; grid-row: 2; justify-content: flex-end; }
   .photo-chat-panel .photo-chat-reference-details { grid-column: 1; grid-row: 3; }
   .photo-chat-panel .photo-chat-help { grid-column: 2; grid-row: 3; max-width: 150px; justify-self: end; }
