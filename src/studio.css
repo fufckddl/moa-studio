@@ -858,6 +858,8 @@
   .app-shell .style-controls .field select { padding-inline: 4px; font-size: 12px; }
   .app-shell .photo-strip { gap: 8px; margin-bottom: 8px; }
   .app-shell .photo-thumb { flex-basis: 54px; width: 54px; }
+  .app-shell .photo-thumb > button:not(.photo-select) { width: calc(26px / 3); height: calc(26px / 3); min-height: 0; }
+  .app-shell .photo-thumb > button:not(.photo-select) svg { width: calc(14px / 3); height: calc(14px / 3); }
   .app-shell .drop-zone { min-height: 46px; padding: 7px 9px; column-gap: 8px; }
   .app-shell .drop-zone strong { font-size: 12px; }
   .app-shell .segmented { gap: 6px; margin-bottom: 9px; }
