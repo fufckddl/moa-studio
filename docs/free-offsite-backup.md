@@ -15,7 +15,16 @@ The backup job supports S3-compatible object storage through `BACKUP_DESTINATION
 - No Event Notifications, replication, Fireball, public bucket, or paid subscription is enabled for this backup.
 - Standard Linux GitHub Actions runs use this public repository; no paid runner was configured.
 
-The first remote backup verification is pending execution. The schedule remains daily at 02:00 KST; scheduled execution can be delayed by GitHub.
+### First remote backup verified
+
+- [GitHub Actions run 34218323088](https://github.com/fufckddl/moa-studio/actions/runs/34218323088) completed successfully on 2026-09-08 at 20:02 KST with PostgreSQL 18.6 and AWS CLI 2.36.35.
+- Uploaded archive: `moa-studio-supabase-2026-09-08T11-00-00-289Z.tar.gz.gpg`, 1,088,306 bytes, plus its 122-byte checksum file. S3 listing confirmed two objects totaling 1,088,428 bytes.
+- Downloaded both objects from B2 and verified the outer SHA-256 checksum.
+- The downloaded archive decrypted successfully with the separately stored GPG passphrase. Restore dry-run checks verified all 15 manifest files: four DB dumps and 11 Storage objects. No DB or Storage restore writes were performed for this verification; the earlier isolated restore drill remains recorded separately.
+- The scoped key can list `supabase/`; listing `outside-backup/` returns `AccessDenied`.
+- After the upload/download check, Caps & Alerts still displayed $0.00, the original $0 caps, and enabled email alerts. Storage/download counters had not caught up yet; the object sizes above come from the actual S3 response.
+- Local validation: 177 tests passed, typecheck passed, and backup-specific tests passed 20/20.
+- The daily workflow remains active for 02:00 KST. The first run was manually triggered through that same workflow; the next scheduled trigger has not occurred yet. GitHub can delay scheduled jobs.
 
 Backblaze documents that staying within free usage limits incurs no charge and that Class D operations such as Event Notifications cannot be capped. Keep the account's current $0 caps and avoid adding uncapped services. [Caps and alerts](https://www.backblaze.com/docs/cloud-storage-data-caps-and-alerts), [SSE pricing and behavior](https://www.backblaze.com/docs/cloud-storage-server-side-encryption).
 
