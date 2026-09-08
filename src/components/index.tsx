@@ -481,7 +481,7 @@ export function WorkspacePreview({ selectedCardId, onCardSelect: setSelectedCard
             </button>
           </div>
           <div className="slide-controls">
-            <button type="button" aria-label="이전 카드" disabled={photoEditingDisabled} onClick={() => moveSlide(-1)}>‹</button>
+            <button type="button" aria-label="이전 카드" disabled={photoEditingDisabled} onClick={() => moveSlide(-1)}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m16 5-8 7 8 7" /></svg></button>
             <div className="slide-strip card-slide-strip">
               {pack.cards.map((card, index) => {
                 const photo = photos.find((item) => item.id === card.imageId) ?? photos[0];
@@ -493,7 +493,7 @@ export function WorkspacePreview({ selectedCardId, onCardSelect: setSelectedCard
                 );
               })}
             </div>
-            <button type="button" aria-label="다음 카드" disabled={photoEditingDisabled} onClick={() => moveSlide(1)}>›</button>
+            <button type="button" aria-label="다음 카드" disabled={photoEditingDisabled} onClick={() => moveSlide(1)}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m8 5 8 7-8 7" /></svg></button>
             <strong>{String(selectedIndex + 1).padStart(2, '0')} <span>/ {String(pack.cards.length).padStart(2, '0')}</span></strong>
           </div>
           <button className="edit-toggle" data-tutorial="card-edit" type="button" disabled={readOnly} aria-expanded={editing} onClick={() => setEditing(!editing)}><Icon name={editing ? 'close' : 'pen'} /><span>{readOnly ? '로그인하고 편집' : editing ? '편집 닫기' : '문구 편집'}</span></button>
