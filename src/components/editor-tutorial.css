@@ -30,42 +30,25 @@
   pointer-events: none;
 }
 
-.editor-tutorial-pane,
+.editor-tutorial-scrim,
 .editor-tutorial-highlight,
 .editor-tutorial-popover {
   position: fixed;
   pointer-events: auto;
 }
 
-.editor-tutorial-pane {
+.editor-tutorial-scrim {
+  inset: 0;
   background: rgba(18, 25, 21, 0.44);
   backdrop-filter: blur(7px);
   -webkit-backdrop-filter: blur(7px);
-}
-
-.editor-tutorial-pane.top {
-  top: 0;
-  right: 0;
-  left: 0;
-}
-
-.editor-tutorial-pane.bottom {
-  right: 0;
-  bottom: 0;
-  left: 0;
-}
-
-.editor-tutorial-pane.left {
-  left: 0;
-}
-
-.editor-tutorial-pane.right {
-  right: 0;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
 }
 
 .editor-tutorial-highlight {
   border: 2px solid rgba(255, 252, 246, 0.95);
-  border-radius: 10px;
+  border-radius: 20px;
   background: rgba(255, 255, 255, 0.02);
   box-shadow:
     0 0 0 1px rgba(35, 60, 48, 0.35),
@@ -74,6 +57,8 @@
 }
 
 .editor-tutorial-popover {
+  display: flex;
+  flex-direction: column;
   max-width: calc(100vw - 32px);
   max-height: calc(100vh - 32px);
   overflow: auto;
@@ -128,11 +113,16 @@
 }
 
 .editor-tutorial-actions {
+  position: sticky;
+  bottom: -18px;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
   margin-top: 18px;
+  padding-top: 10px;
+  padding-bottom: 2px;
+  background: #fffaf2;
 }
 
 .editor-tutorial-spacer {
@@ -188,6 +178,7 @@
   .editor-tutorial-actions {
     flex-wrap: nowrap;
     gap: 6px;
+    bottom: -16px;
   }
 
   .editor-tutorial-spacer {
@@ -224,6 +215,7 @@
 
   .editor-tutorial-actions {
     margin-top: 14px;
+    bottom: -12px;
   }
 
   .editor-tutorial-actions button {
@@ -233,7 +225,11 @@
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .editor-tutorial-pane {
+  .editor-tutorial-scrim {
     background: rgba(18, 25, 21, 0.58);
   }
 }
+
+/* Floating actions must not cover the section currently being explained. */
+.app-shell:has(.editor-tutorial-layer) .photo-chat-tab,
+.app-shell:has(.editor-tutorial-layer) .editor-tutorial-replay { opacity: 0; pointer-events: none; }

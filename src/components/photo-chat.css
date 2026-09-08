@@ -121,3 +121,8 @@ body:has(.photo-chat-panel.is-resizing) { cursor: col-resize; user-select: none;
 .photo-chat-person span { display: block; margin-top: 2px; color: #718071; font-size: 10px; }
 .photo-chat-person-actions { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; }
 .photo-chat-person-actions .primary-button, .photo-chat-person-actions .ghost-button { min-height: 30px; padding: 5px 9px; font-size: 11px; }
+
+@media (max-height: 600px) {
+  .photo-chat-header { flex-shrink: 0; }
+  .photo-chat-composer { max-height: 60dvh; overflow-y: auto; overscroll-behavior: contain; }
+}

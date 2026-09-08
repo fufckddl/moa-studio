@@ -19,12 +19,22 @@ type TargetRect = {
   viewportHeight: number;
 };
 
+type ViewportRect = {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+  width: number;
+  height: number;
+};
+
 type DialogPlacement = {
   top?: number;
   right?: number;
   bottom?: number;
   left?: number;
   width?: number;
+  maxHeight?: number;
 };
 
 type DialogSize = {
@@ -42,6 +52,7 @@ const VIEWPORT_GAP = 16;
 const POPOVER_GAP = 14;
 const POPOVER_WIDTH = 360;
 const INITIAL_POPOVER_HEIGHT = 246;
+const HIGHLIGHT_RADIUS = 20;
 
 const steps: TutorialStep[] = [
   {
@@ -78,14 +89,29 @@ const steps: TutorialStep[] = [
     id: 'card-edit',
     selector: '[data-tutorial="card-edit"]',
     title: '문구와 스타일 편집',
-    body: '문구 편집을 열면 제목, 설명, 가격에 맞춘 문장, 레이아웃, 색상, 글자 크기와 정렬을 직접 다듬을 수 있습니다.',
+    body: '편집 패널을 열어 두었어요. 다음 단계부터 레이아웃, 사진, 문구와 스타일 설정을 하나씩 살펴봅니다.',
   },
+  {"id": "edit-layout", "selector": "[data-tutorial=\"edit-layout\"]", "title": "카드 레이아웃", "body": "사진 중심, 여백형, 포스터형 등 원하는 구성을 고릅니다. 선택한 카드의 디자인이 미리보기에 반영돼요."},
+  {"id": "edit-photo", "selector": "[data-tutorial=\"edit-photo\"]", "title": "카드에 사용할 사진", "body": "업로드한 사진 중 현재 카드에 쓸 사진을 고릅니다. 사진이 한 장이면 선택할 다른 사진이 없어 비활성화돼요."},
+  {"id": "edit-eyebrow", "selector": "[data-tutorial=\"edit-eyebrow\"]", "title": "작은 제목", "body": "메뉴 분류나 짧은 소개처럼 큰 제목 위에 들어갈 보조 문구를 적습니다."},
+  {"id": "edit-title", "selector": "[data-tutorial=\"edit-title\"]", "title": "큰 제목", "body": "카드에서 가장 강조할 문구를 적습니다. 줄바꿈을 넣어 제목의 호흡을 조절할 수 있어요."},
+  {"id": "edit-subtitle", "selector": "[data-tutorial=\"edit-subtitle\"]", "title": "부제목", "body": "메뉴의 특징이나 가격처럼 제목을 보충할 내용을 적습니다. 미리보기에서 글이 잘 보이는지 확인하세요."},
+  {"id": "edit-body", "selector": "[data-tutorial=\"edit-body\"]", "title": "본문", "body": "더 자세한 설명을 적는 곳입니다. 선택한 레이아웃에 따라 본문의 위치와 보이는 분량이 달라져요."},
+  {"id": "edit-text-color", "selector": "[data-tutorial=\"edit-text-color\"]", "title": "텍스트 색상", "body": "현재 카드에 사용할 글자 색을 고릅니다. 배경이나 사진과 대비되는 색을 쓰면 읽기 편해요."},
+  {"id": "edit-background", "selector": "[data-tutorial=\"edit-background\"]", "title": "배경 색상", "body": "현재 카드의 배경 색을 바꿉니다. 사진이 덮는 부분을 제외한 영역에서 색을 확인할 수 있어요."},
+  {"id": "edit-font-size", "selector": "[data-tutorial=\"edit-font-size\"]", "title": "글자 크기", "body": "슬라이더로 글자를 기본 크기의 85%부터 120%까지 조절합니다. 긴 문구는 크기를 줄여 맞춰 보세요."},
+  {"id": "edit-alignment", "selector": "[data-tutorial=\"edit-alignment\"]", "title": "글자 정렬", "body": "글을 왼쪽, 가운데, 오른쪽 중 어디에 맞출지 고릅니다. 현재 카드에만 적용돼요."},
   {
     id: 'photo-chat',
     selector: '[data-tutorial="photo-chat"]',
     title: 'AI 사진 수정',
     body: '사진 수정 패널을 열면 선택한 카드 사진을 대화로 다듬거나 다시 사용할 인물을 만들 수 있습니다.',
   },
+  {"id": "chat-modes", "selector": "[data-tutorial=\"chat-modes\"]", "title": "인물 생성과 AI 사진 수정", "body": "인물 생성은 원본 없이 다시 사용할 인물을 만듭니다. AI 사진 수정은 현재 카드의 사진을 바꾸는 기능이에요. 작업에 맞는 탭을 선택하세요."},
+  {"id": "chat-references", "selector": "[data-tutorial=\"chat-references\"]", "title": "참고 이미지", "body": "AI 사진 수정에 참고할 이미지를 최대 3장 추가합니다. 분위기를 참고할지, 인물·제품을 참고할지 사진마다 지정할 수 있어요."},
+  {"id": "chat-prompt", "selector": "[data-tutorial=\"chat-prompt\"]", "title": "원하는 작업 설명", "body": "만들 인물이나 사진에서 바꾸고 싶은 내용을 적습니다. Enter는 전송, Shift+Enter는 줄바꿈이에요. 이 안내 중에는 요청을 보내지 않습니다."},
+  {"id": "chat-submit", "selector": "[data-tutorial=\"chat-submit\"]", "title": "AI 작업 실행", "body": "내용을 확인한 뒤 실행합니다. 로그인 상태와 남은 사용량에 따라 버튼이 활성화돼요. 성공한 작업은 사용량에 반영됩니다."},
+  {"id": "chat-review", "selector": "[data-tutorial=\"chat-review\"]", "title": "결과 확인과 적용", "body": "수정 결과는 먼저 확인한 뒤 이 사진 적용으로 카드에 반영합니다. 생성한 인물은 이 인물 사용으로 사진 수정의 참고에 넣을 수 있어요."},
   {
     id: 'export',
     selector: '[data-tutorial="export"]',
@@ -117,14 +143,31 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
+function viewportRect(): ViewportRect {
+  const viewport = window.visualViewport;
+  const left = viewport?.offsetLeft ?? 0;
+  const top = viewport?.offsetTop ?? 0;
+  const width = viewport?.width ?? window.innerWidth;
+  const height = viewport?.height ?? window.innerHeight;
+  return {
+    top,
+    right: left + width,
+    bottom: top + height,
+    left,
+    width,
+    height,
+  };
+}
+
 function stickyHeaderBottom() {
-  if (window.innerWidth > 980) return 0;
+  const viewport = viewportRect();
+  if (viewport.width > 980) return viewport.top;
   const header = document.querySelector<HTMLElement>('.studio-header');
-  if (!header) return 0;
+  if (!header) return viewport.top;
   const style = window.getComputedStyle(header);
-  if (style.position !== 'sticky' && style.position !== 'fixed') return 0;
+  if (style.position !== 'sticky' && style.position !== 'fixed') return viewport.top;
   const rect = header.getBoundingClientRect();
-  if (rect.top > 1 || rect.bottom <= 0 || rect.bottom >= window.innerHeight) return 0;
+  if (rect.top > viewport.top + 1 || rect.bottom <= viewport.top || rect.bottom >= viewport.bottom) return viewport.top;
   return rect.bottom;
 }
 
@@ -135,20 +178,37 @@ function focusableElements(container: HTMLElement | null) {
 }
 
 function findTarget(step: TutorialStep) {
-  const element = document.querySelector<HTMLElement>(step.selector);
-  if (!element || element.getClientRects().length === 0 || window.getComputedStyle(element).visibility === 'hidden') return null;
-  return element;
+  const elements = Array.from(document.querySelectorAll<HTMLElement>(step.selector));
+  return elements.find((element) => element.getClientRects().length > 0 && window.getComputedStyle(element).visibility !== 'hidden') ?? null;
 }
 
 function targetRect(element: HTMLElement): TargetRect {
   const raw = element.getBoundingClientRect();
-  const viewportWidth = window.innerWidth;
-  const viewportHeight = window.innerHeight;
-  const headerBottom = stickyHeaderBottom();
-  const topBound = raw.top < headerBottom && raw.bottom > headerBottom ? headerBottom : VIEWPORT_GAP;
-  const bottomBound = Math.max(topBound, viewportHeight - VIEWPORT_GAP);
-  const left = clamp(raw.left - TARGET_PADDING, VIEWPORT_GAP, Math.max(VIEWPORT_GAP, viewportWidth - VIEWPORT_GAP));
-  const right = clamp(raw.right + TARGET_PADDING, VIEWPORT_GAP, Math.max(VIEWPORT_GAP, viewportWidth - VIEWPORT_GAP));
+  const viewport = viewportRect();
+  const viewportWidth = viewport.width;
+  const viewportHeight = viewport.height;
+  const headerBottom = element.closest('.photo-chat-panel') ? viewport.top : stickyHeaderBottom();
+  let topBound = raw.top < headerBottom && raw.bottom > headerBottom ? headerBottom : viewport.top + VIEWPORT_GAP;
+  let bottomBound = Math.max(topBound, viewport.bottom - VIEWPORT_GAP);
+  let leftBound = viewport.left + VIEWPORT_GAP;
+  let rightBound = Math.max(leftBound, viewport.right - VIEWPORT_GAP);
+  // Only reveal the part of a control that its scroll container actually displays.
+  for (let parent = element.parentElement; parent && parent !== document.body; parent = parent.parentElement) {
+    const style = window.getComputedStyle(parent);
+    const bounds = parent.getBoundingClientRect();
+    if (/(auto|scroll|hidden|clip)/.test(style.overflowY)) {
+      topBound = Math.max(topBound, bounds.top);
+      bottomBound = Math.min(bottomBound, bounds.bottom);
+    }
+    if (/(auto|scroll|hidden|clip)/.test(style.overflowX)) {
+      leftBound = Math.max(leftBound, bounds.left);
+      rightBound = Math.min(rightBound, bounds.right);
+    }
+  }
+  bottomBound = Math.max(topBound, bottomBound);
+  rightBound = Math.max(leftBound, rightBound);
+  const left = clamp(raw.left - TARGET_PADDING, leftBound, rightBound);
+  const right = clamp(raw.right + TARGET_PADDING, leftBound, rightBound);
   const top = clamp(raw.top - TARGET_PADDING, topBound, bottomBound);
   const bottom = clamp(raw.bottom + TARGET_PADDING, topBound, bottomBound);
 
@@ -164,14 +224,47 @@ function targetRect(element: HTMLElement): TargetRect {
   };
 }
 
-function scrollTargetIntoView(element: HTMLElement) {
+function scrollableParent(element: HTMLElement) {
+  let parent = element.parentElement;
+  while (parent && parent !== document.body) {
+    const style = window.getComputedStyle(parent);
+    const overflow = `${style.overflow}${style.overflowY}${style.overflowX}`;
+    if (/(auto|scroll)/.test(overflow) && parent.scrollHeight > parent.clientHeight) return parent;
+    parent = parent.parentElement;
+  }
+  return null;
+}
+
+function scrollTargetIntoView(element: HTMLElement, size: DialogSize) {
   const style = window.getComputedStyle(element);
   if (style.position === 'fixed' || style.position === 'sticky') return;
 
   const raw = element.getBoundingClientRect();
+  const viewport = viewportRect();
+  const scroller = scrollableParent(element);
+  if (scroller) {
+    const container = scroller.getBoundingClientRect();
+    const top = container.top + VIEWPORT_GAP;
+    const bottom = container.bottom - VIEWPORT_GAP;
+    const availableHeight = Math.max(0, bottom - top);
+    const targetHeight = raw.height + TARGET_PADDING * 2;
+    const desiredTop = targetHeight >= availableHeight
+      ? top
+      : top + (availableHeight - targetHeight) / 2;
+    const currentTop = raw.top - TARGET_PADDING;
+    if (currentTop < top || raw.bottom + TARGET_PADDING > bottom) {
+      scroller.scrollBy({ top: currentTop - desiredTop, behavior: 'auto' });
+    }
+    return;
+  }
+
   const headerBottom = stickyHeaderBottom();
-  const top = Math.max(VIEWPORT_GAP, headerBottom + VIEWPORT_GAP);
-  const bottom = Math.max(top, window.innerHeight - VIEWPORT_GAP);
+  const dialogHeight = Math.min(size.height, viewport.height - VIEWPORT_GAP * 2);
+  const requiredSide = Math.min(POPOVER_WIDTH, viewport.width - VIEWPORT_GAP * 2) + POPOVER_GAP + VIEWPORT_GAP;
+  const hasSideRoom = raw.left - viewport.left >= requiredSide || viewport.right - raw.right >= requiredSide;
+  const mobileReserve = !hasSideRoom ? Math.min(dialogHeight, Math.max(96, viewport.height * 0.45)) + POPOVER_GAP : 0;
+  const top = Math.max(viewport.top + VIEWPORT_GAP + mobileReserve, headerBottom + VIEWPORT_GAP);
+  const bottom = Math.max(top, viewport.bottom - VIEWPORT_GAP);
   const availableHeight = bottom - top;
   const targetHeight = raw.height + TARGET_PADDING * 2;
   const desiredTop = targetHeight >= availableHeight
@@ -197,44 +290,103 @@ function overlap(top: number, height: number, rect: TargetRect) {
 }
 
 function dialogPlacement(rect: TargetRect | null, size: DialogSize): DialogPlacement {
-  const viewportWidth = rect?.viewportWidth ?? window.innerWidth;
-  const viewportHeight = rect?.viewportHeight ?? window.innerHeight;
+  const viewport = viewportRect();
+  const viewportWidth = rect?.viewportWidth ?? viewport.width;
+  const viewportHeight = rect?.viewportHeight ?? viewport.height;
+  const viewportLeft = viewport.left;
+  const viewportTop = viewport.top;
+  const viewportRight = viewport.left + viewportWidth;
+  const viewportBottom = viewport.top + viewportHeight;
   const width = Math.min(POPOVER_WIDTH, viewportWidth - VIEWPORT_GAP * 2);
   const height = Math.min(size.height, viewportHeight - VIEWPORT_GAP * 2);
 
-  if (!rect || viewportWidth <= 720) {
-    if (rect && rect.bottom + POPOVER_GAP + height <= viewportHeight - VIEWPORT_GAP) {
-      return { left: VIEWPORT_GAP, right: VIEWPORT_GAP, top: rect.bottom + POPOVER_GAP };
-    }
-    if (rect && rect.top - POPOVER_GAP - height >= VIEWPORT_GAP) {
-      return { left: VIEWPORT_GAP, right: VIEWPORT_GAP, top: rect.top - POPOVER_GAP - height };
-    }
-    if (rect) {
-      const topDock = VIEWPORT_GAP;
-      const bottomDock = viewportHeight - height - VIEWPORT_GAP;
+  const hasSideRoom = rect && (viewportRight - rect.right >= width + POPOVER_GAP + VIEWPORT_GAP || rect.left - viewportLeft >= width + POPOVER_GAP + VIEWPORT_GAP);
+  if (!rect || !hasSideRoom) {
+    if (!rect) return { left: viewportLeft + VIEWPORT_GAP, width: viewportWidth - VIEWPORT_GAP * 2, bottom: VIEWPORT_GAP, maxHeight: viewportHeight - VIEWPORT_GAP * 2 };
+
+    const below = viewportBottom - VIEWPORT_GAP - rect.bottom - POPOVER_GAP;
+    const above = rect.top - POPOVER_GAP - viewportTop - VIEWPORT_GAP;
+    if (below >= Math.min(height, 96) && below >= above) {
       return {
-        left: VIEWPORT_GAP,
-        right: VIEWPORT_GAP,
-        top: overlap(topDock, height, rect) <= overlap(bottomDock, height, rect) ? topDock : bottomDock,
+        left: viewportLeft + VIEWPORT_GAP,
+        width: viewportWidth - VIEWPORT_GAP * 2,
+        top: rect.bottom + POPOVER_GAP,
+        maxHeight: Math.max(96, below),
       };
     }
-    return { left: VIEWPORT_GAP, right: VIEWPORT_GAP, bottom: VIEWPORT_GAP };
+    if (above >= Math.min(height, 96)) {
+      return {
+        left: viewportLeft + VIEWPORT_GAP,
+        width: viewportWidth - VIEWPORT_GAP * 2,
+        top: Math.max(viewportTop + VIEWPORT_GAP, rect.top - POPOVER_GAP - height),
+        maxHeight: Math.max(96, above),
+      };
+    }
+
+    const topDock = viewportTop + VIEWPORT_GAP;
+    const bottomDock = viewportBottom - height - VIEWPORT_GAP;
+    return {
+      left: viewportLeft + VIEWPORT_GAP,
+      width: viewportWidth - VIEWPORT_GAP * 2,
+      top: overlap(topDock, height, rect) <= overlap(bottomDock, height, rect) ? topDock : bottomDock,
+      maxHeight: viewportHeight - VIEWPORT_GAP * 2,
+    };
   }
 
-  const sideTop = clamp(rect.top, VIEWPORT_GAP, viewportHeight - height - VIEWPORT_GAP);
-  if (viewportWidth - rect.right >= width + POPOVER_GAP + VIEWPORT_GAP) {
-    return { width, left: rect.right + POPOVER_GAP, top: sideTop };
+  const sideTop = clamp(rect.top, viewportTop + VIEWPORT_GAP, viewportBottom - height - VIEWPORT_GAP);
+  if (viewportRight - rect.right >= width + POPOVER_GAP + VIEWPORT_GAP) {
+    return { width, left: rect.right + POPOVER_GAP, top: sideTop, maxHeight: viewportHeight - VIEWPORT_GAP * 2 };
   }
-  if (rect.left >= width + POPOVER_GAP + VIEWPORT_GAP) {
-    return { width, left: rect.left - width - POPOVER_GAP, top: sideTop };
+  if (rect.left - viewportLeft >= width + POPOVER_GAP + VIEWPORT_GAP) {
+    return { width, left: rect.left - width - POPOVER_GAP, top: sideTop, maxHeight: viewportHeight - VIEWPORT_GAP * 2 };
   }
-  if (rect.bottom + POPOVER_GAP + height <= viewportHeight - VIEWPORT_GAP) {
-    return { width, left: clamp(rect.left, VIEWPORT_GAP, viewportWidth - width - VIEWPORT_GAP), top: rect.bottom + POPOVER_GAP };
+  if (rect.bottom + POPOVER_GAP + height <= viewportBottom - VIEWPORT_GAP) {
+    return {
+      width,
+      left: clamp(rect.left, viewportLeft + VIEWPORT_GAP, viewportRight - width - VIEWPORT_GAP),
+      top: rect.bottom + POPOVER_GAP,
+      maxHeight: viewportBottom - VIEWPORT_GAP - rect.bottom - POPOVER_GAP,
+    };
   }
   return {
     width,
-    left: clamp(rect.left, VIEWPORT_GAP, viewportWidth - width - VIEWPORT_GAP),
-    top: clamp(rect.top - POPOVER_GAP - height, VIEWPORT_GAP, viewportHeight - height - VIEWPORT_GAP),
+    left: clamp(rect.left, viewportLeft + VIEWPORT_GAP, viewportRight - width - VIEWPORT_GAP),
+    top: clamp(rect.top - POPOVER_GAP - height, viewportTop + VIEWPORT_GAP, viewportBottom - height - VIEWPORT_GAP),
+    maxHeight: viewportHeight - VIEWPORT_GAP * 2,
+  };
+}
+
+function roundedRectPath(x: number, y: number, width: number, height: number, radius: number) {
+  const right = x + width;
+  const bottom = y + height;
+  const r = Math.min(radius, width / 2, height / 2);
+  return [
+    `M ${x + r} ${y}`,
+    `H ${right - r}`,
+    `Q ${right} ${y} ${right} ${y + r}`,
+    `V ${bottom - r}`,
+    `Q ${right} ${bottom} ${right - r} ${bottom}`,
+    `H ${x + r}`,
+    `Q ${x} ${bottom} ${x} ${bottom - r}`,
+    `V ${y + r}`,
+    `Q ${x} ${y} ${x + r} ${y}`,
+    'Z',
+  ].join(' ');
+}
+
+function overlayMask(rect: TargetRect | null) {
+  const viewport = viewportRect();
+  const hole = rect && rect.width > 0 && rect.height > 0
+    ? roundedRectPath(rect.left - viewport.left, rect.top - viewport.top, rect.width, rect.height, HIGHLIGHT_RADIUS)
+    : '';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${viewport.width} ${viewport.height}"><path fill="black" fill-rule="evenodd" d="M0 0H${viewport.width}V${viewport.height}H0Z ${hole}"/></svg>`;
+  return {
+    maskImage: `url("data:image/svg+xml,${encodeURIComponent(svg)}")`,
+    WebkitMaskImage: `url("data:image/svg+xml,${encodeURIComponent(svg)}")`,
+    maskSize: `${viewport.width}px ${viewport.height}px`,
+    WebkitMaskSize: `${viewport.width}px ${viewport.height}px`,
+    maskPosition: `${viewport.left}px ${viewport.top}px`,
+    WebkitMaskPosition: `${viewport.left}px ${viewport.top}px`,
   };
 }
 
@@ -249,9 +401,33 @@ export function EditorTutorial({ userId, suspended = false }: EditorTutorialProp
   const previousFocus = useRef<HTMLElement | null>(null);
   const previousScroll = useRef({ left: 0, top: 0 });
   const autoOpened = useRef(false);
+  const photoChatOpenRequested = useRef(false);
   const activeStep = steps[stepIndex] ?? steps[0];
   const visible = open && !suspended;
   const placement = useMemo(() => dialogPlacement(rect, dialogSize), [dialogSize, rect]);
+  const maskStyle = useMemo(() => overlayMask(rect), [rect]);
+
+  useEffect(() => {
+    if (!visible || (activeStep.id !== 'preview' && activeStep.id !== 'card-edit')) return;
+    window.dispatchEvent(new CustomEvent('moa:tutorial:open-editor'));
+  }, [activeStep.id, visible]);
+
+  useEffect(() => {
+    const shouldOpen = visible && (activeStep.id === 'photo-chat' || activeStep.id.startsWith('chat-'));
+    if (shouldOpen && !photoChatOpenRequested.current) {
+      window.dispatchEvent(new CustomEvent('moa:tutorial:photo-chat', { detail: 'open' }));
+      photoChatOpenRequested.current = true;
+    } else if (!shouldOpen && photoChatOpenRequested.current) {
+      window.dispatchEvent(new CustomEvent('moa:tutorial:photo-chat', { detail: 'restore' }));
+      photoChatOpenRequested.current = false;
+    }
+  }, [activeStep.id, visible]);
+
+  useEffect(() => () => {
+    if (!photoChatOpenRequested.current) return;
+    window.dispatchEvent(new CustomEvent('moa:tutorial:photo-chat', { detail: 'restore' }));
+    photoChatOpenRequested.current = false;
+  }, []);
 
   const closeSession = useCallback(() => {
     setOpen(false);
@@ -315,12 +491,15 @@ export function EditorTutorial({ userId, suspended = false }: EditorTutorialProp
       return undefined;
     }
 
-    scrollTargetIntoView(target);
+    scrollTargetIntoView(target, dialogSize);
     setRect(targetRect(target));
-    const timeout = window.setTimeout(() => setRect(targetRect(target)), 320);
+    const timeout = window.setTimeout(() => {
+      const currentTarget = findTarget(activeStep);
+      if (currentTarget) { scrollTargetIntoView(currentTarget, dialogSize); setRect(targetRect(currentTarget)); }
+    }, 320);
 
     return () => window.clearTimeout(timeout);
-  }, [activeStep, closeSession, stepIndex, visible]);
+  }, [activeStep, closeSession, dialogSize, stepIndex, visible]);
 
   useEffect(() => {
     if (!visible) return undefined;
@@ -337,16 +516,25 @@ export function EditorTutorial({ userId, suspended = false }: EditorTutorialProp
       frame = window.requestAnimationFrame(update);
     };
 
+    const resize = () => {
+      const target = findTarget(activeStep);
+      if (target) scrollTargetIntoView(target, dialogSize);
+      scheduleUpdate();
+    };
     update();
-    window.addEventListener('resize', scheduleUpdate);
+    window.addEventListener('resize', resize);
     window.addEventListener('scroll', scheduleUpdate, true);
+    window.visualViewport?.addEventListener('resize', resize);
+    window.visualViewport?.addEventListener('scroll', scheduleUpdate);
 
     return () => {
       window.cancelAnimationFrame(frame);
-      window.removeEventListener('resize', scheduleUpdate);
+      window.removeEventListener('resize', resize);
       window.removeEventListener('scroll', scheduleUpdate, true);
+      window.visualViewport?.removeEventListener('resize', resize);
+      window.visualViewport?.removeEventListener('scroll', scheduleUpdate);
     };
-  }, [activeStep, visible]);
+  }, [activeStep, dialogSize, visible]);
 
   useEffect(() => {
     if (!visible || !dialogRef.current) return undefined;
@@ -354,7 +542,10 @@ export function EditorTutorial({ userId, suspended = false }: EditorTutorialProp
     const updateSize = () => {
       const bounds = dialogRef.current?.getBoundingClientRect();
       if (!bounds) return;
-      setDialogSize({ width: bounds.width, height: bounds.height });
+      setDialogSize((current) => {
+        if (Math.abs(current.width - bounds.width) < 0.5 && Math.abs(current.height - bounds.height) < 0.5) return current;
+        return { width: bounds.width, height: bounds.height };
+      });
     };
     updateSize();
 
@@ -449,10 +640,7 @@ export function EditorTutorial({ userId, suspended = false }: EditorTutorialProp
       </button>
       {visible ? (
         <div className="editor-tutorial-layer" aria-hidden={false}>
-          <div className="editor-tutorial-pane top" style={{ height: rect?.top ?? 0 }} />
-          <div className="editor-tutorial-pane bottom" style={{ top: rect?.bottom ?? 0 }} />
-          <div className="editor-tutorial-pane left" style={{ top: rect?.top ?? 0, width: rect?.left ?? 0, height: rect?.height ?? 0 }} />
-          <div className="editor-tutorial-pane right" style={{ top: rect?.top ?? 0, left: rect?.right ?? 0, height: rect?.height ?? 0 }} />
+          <div className="editor-tutorial-scrim" style={maskStyle} />
           <div
             className="editor-tutorial-highlight"
             style={{ top: rect?.top ?? 0, left: rect?.left ?? 0, width: rect?.width ?? 0, height: rect?.height ?? 0 }}

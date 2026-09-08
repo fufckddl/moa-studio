@@ -257,9 +257,9 @@ function PanelStep({ number, title, children, tutorial }: { number: string; titl
   );
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+function Field({ label, hint, children, tutorial }: { label: string; hint?: string; children: ReactNode; tutorial?: string }) {
   return (
-    <label className="field">
+    <label className="field" data-tutorial={tutorial}>
       <span><b>{label}</b>{hint ? <em>{hint}</em> : null}</span>
       {children}
     </label>
@@ -281,6 +281,11 @@ function SegmentedControl<T extends string>({ label, value, options, disabled = 
 export function WorkspacePreview({ selectedCardId, onCardSelect: setSelectedCardId, brand, photos, pack, exporting, readOnly = false, scheduleEnabled = false, photoEditingDisabled = false, onPhotoReplace, onPackChange, onExport, onLogin, chatUserId, onChatBusyChange }: WorkspacePreviewProps) {
   const [view, setView] = useState<PreviewView>('cards');
   const [editing, setEditing] = useState(true);
+  useEffect(() => {
+    const showEditor = () => { setView('cards'); setEditing(true); };
+    window.addEventListener('moa:tutorial:open-editor', showEditor);
+    return () => window.removeEventListener('moa:tutorial:open-editor', showEditor);
+  }, []);
   const [feedback, setFeedback] = useState('');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const selectedIndex = Math.max(0, pack.cards.findIndex((card) => card.id === selectedCardId));
@@ -502,41 +507,41 @@ export function WorkspacePreview({ selectedCardId, onCardSelect: setSelectedCard
           {editing && selectedCard ? (
             <fieldset className="edit-panel" disabled={photoEditingDisabled || readOnly} style={{ border: 0, margin: 0, minWidth: 0 }}>
               <div className="form-row">
-                <Field label="레이아웃">
+                <Field tutorial="edit-layout" label="레이아웃">
                   <select value={selectedCard.layout} onChange={(event) => patchCard({ layout: event.target.value as ContentCard['layout'] })}>
                     {cardLayouts.map((layout) => <option key={layout.value} value={layout.value}>{layout.label}</option>)}
                   </select>
                 </Field>
-                <Field label="사진">
+                <Field tutorial="edit-photo" label="사진">
                   <select value={selectedCard.imageId} onChange={(event) => patchCard({ imageId: event.target.value })} disabled={photos.length < 2}>
                     {photos.map((photo) => <option key={photo.id} value={photo.id}>{photo.name}</option>)}
                   </select>
                 </Field>
               </div>
               <p className="layout-description">{cardLayouts.find((layout) => layout.value === selectedCard.layout)?.description}</p>
-              <Field label="작은 제목">
+              <Field tutorial="edit-eyebrow" label="작은 제목">
                 <input value={selectedCard.eyebrow} maxLength={80} onChange={(event) => patchCard({ eyebrow: event.target.value })} />
               </Field>
-              <Field label="큰 제목">
+              <Field tutorial="edit-title" label="큰 제목">
                 <textarea rows={3} maxLength={200} value={selectedCard.title} onChange={(event) => patchCard({ title: event.target.value })} />
               </Field>
-              <Field label="부제목">
+              <Field tutorial="edit-subtitle" label="부제목">
                 <textarea rows={2} maxLength={200} value={selectedCard.subtitle} onChange={(event) => patchCard({ subtitle: event.target.value })} />
               </Field>
-              <Field label="본문">
+              <Field tutorial="edit-body" label="본문">
                 <textarea rows={3} maxLength={1000} value={selectedCard.body} onChange={(event) => patchCard({ body: event.target.value })} />
               </Field>
               <div className="style-controls" aria-label="카드 스타일">
-                <Field label="텍스트 색">
+                <Field tutorial="edit-text-color" label="텍스트 색">
                   <input type="color" value={selectedCard.style?.textColor ?? '#253229'} onChange={(event) => patchCardStyle({ textColor: event.target.value })} />
                 </Field>
-                <Field label="배경 색">
+                <Field tutorial="edit-background" label="배경 색">
                   <input type="color" value={selectedCard.style?.backgroundColor ?? brand.color} onChange={(event) => patchCardStyle({ backgroundColor: event.target.value })} />
                 </Field>
-                <Field label="글자 크기" hint={`${Math.round((selectedCard.style?.fontScale ?? 1) * 100)}%`}>
+                <Field tutorial="edit-font-size" label="글자 크기" hint={`${Math.round((selectedCard.style?.fontScale ?? 1) * 100)}%`}>
                   <input type="range" min="85" max="120" step="5" value={Math.round((selectedCard.style?.fontScale ?? 1) * 100)} onChange={(event) => patchCardStyle({ fontScale: Number(event.target.value) / 100 })} />
                 </Field>
-                <Field label="정렬">
+                <Field tutorial="edit-alignment" label="정렬">
                   <select value={selectedCard.style?.align ?? 'left'} onChange={(event) => patchCardStyle({ align: event.target.value as ContentCardStyle['align'] })}>
                     <option value="left">왼쪽</option>
                     <option value="center">가운데</option>
