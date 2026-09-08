@@ -160,6 +160,8 @@ function PhotoChatPanel({ photo, cardTitle, cardPreview, onReplace, disabled, op
   const [showOriginal, setShowOriginal] = useState(false);
   const input = useRef<HTMLTextAreaElement>(null);
   const pickerToggle = useRef<HTMLButtonElement>(null);
+  const helpDetails = useRef<HTMLDetailsElement>(null);
+  const referenceDetails = useRef<HTMLDetailsElement>(null);
   const scrollArea = useRef<HTMLDivElement>(null);
   const reviewStart = useRef<HTMLElement>(null);
   const scrollWasNearBottom = useRef(true);
@@ -348,6 +350,16 @@ function PhotoChatPanel({ photo, cardTitle, cardPreview, onReplace, disabled, op
     function escape(event: KeyboardEvent) {
       if (event.key !== 'Escape') return;
       event.preventDefault();
+      if (referenceDetails.current?.open) {
+        referenceDetails.current.open = false;
+        referenceDetails.current.querySelector('summary')?.focus();
+        return;
+      }
+      if (helpDetails.current?.open) {
+        helpDetails.current.open = false;
+        helpDetails.current.querySelector('summary')?.focus();
+        return;
+      }
       if (personPickerOpen) {
         closePersonPicker();
         return;
@@ -365,6 +377,8 @@ function PhotoChatPanel({ photo, cardTitle, cardPreview, onReplace, disabled, op
   }
 
   function closePanel() {
+    if (helpDetails.current) helpDetails.current.open = false;
+    if (referenceDetails.current) referenceDetails.current.open = false;
     setPersonPickerOpen(false);
     setPersonPickerError('');
     onClose();
@@ -654,11 +668,14 @@ function PhotoChatPanel({ photo, cardTitle, cardPreview, onReplace, disabled, op
         <button type="button" role="tab" aria-selected={mode === 'person'} className={mode === 'person' ? 'active' : ''} disabled={busy} onClick={() => setMode('person')}>인물 생성</button>
         <button type="button" role="tab" aria-selected={mode === 'ai'} className={mode === 'ai' ? 'active' : ''} disabled={busy} onClick={() => setMode('ai')}>AI 사진 수정</button>
       </div>
-      {mode === 'ai' ? <div data-tutorial="chat-references" className="photo-chat-references" aria-label="참고 이미지">
+      {mode === 'ai' ? <details ref={referenceDetails} className="photo-chat-reference-details" onToggle={event => { if (event.currentTarget.open && helpDetails.current) helpDetails.current.open = false; }}>
+        <summary data-tutorial="chat-references">참고 사진 {references.length} / 3</summary>
+        <div className="photo-chat-references" aria-label="참고 이미지">
         <div className="photo-chat-reference-top"><span>참고 사진<small>{references.length} / 3</small></span><label className="photo-chat-attach" title="사진 추가"><input aria-label="사진 추가" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={addReferences} disabled={busy || disabled || addingReferences || references.length >= 3} /><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m3 17 5-5 4 4 3-3 6 6"/></svg></label></div>
         {references.length > 0 && <div className="photo-chat-reference-list">{references.map(reference => <div key={reference.id} className="photo-chat-reference"><img src={reference.dataUrl} alt={`${reference.name} 참고 이미지`} /><div><strong>{reference.name}</strong><select value={reference.purpose} onChange={event => updateReferencePurpose(reference.id, event.target.value as ReferencePurpose)} disabled={busy || disabled}><option value="style">분위기 참고</option><option value="subject">인물·제품 참고</option></select></div><button type="button" onClick={() => removeReference(reference.id)} disabled={busy || disabled} aria-label={`${reference.name} 참고 이미지 제거`}>×</button></div>)}</div>}
         {addingReferences && <p role="status">참고 이미지를 준비하고 있어요…</p>}
-      </div> : <p className="photo-chat-person-note">인물 생성은 원본 사진 없이 밝은 단색 배경의 다시 사용할 인물을 만들어요. 현재 카드는 AI 사진 수정 탭에서만 바뀝니다.</p>}
+        </div>
+      </details> : null}
       <div className="photo-chat-prompt-top">
         <label htmlFor="photo-chat-prompt">{promptLabel}</label>
         <button data-tutorial="chat-library" ref={pickerToggle} className="photo-chat-library-toggle" type="button" aria-expanded={personPickerOpen} aria-controls="photo-chat-person-picker" onClick={() => setPersonPickerOpen(value => !value)}>인물 보관함</button>
@@ -669,8 +686,14 @@ function PhotoChatPanel({ photo, cardTitle, cardPreview, onReplace, disabled, op
         if (!event.repeat) event.currentTarget.form?.requestSubmit();
       }} maxLength={2000} rows={2} placeholder={promptPlaceholder} disabled={busy || disabled} />
       <div data-tutorial="chat-submit" className="photo-chat-send-row"><span>{prompt.length} / 2,000</span><button type="submit" className="primary-button" disabled={submitDisabled}>{submitLabel}</button></div>
-      {loadingStatus ? <p role="status">AI 이미지 연결 확인 중…</p> : <div className="photo-chat-availability"><strong>{exhausted ? 'AI 이미지 사용량을 모두 썼어요' : status?.configured ? usageLabel : status?.reason?.includes('로그인') ? '로그인 후 AI 이미지 사용 가능' : status?.reason?.includes('서버') ? 'AI 이미지 서버 연결 확인 필요' : 'AI 이미지 연결 준비 중'}</strong><span>{availabilityDetail}</span>{(!status?.configured || usage?.configured === false) && <button type="button" onClick={() => void refresh()}>연결 다시 확인</button>}</div>}
-      <p className="photo-chat-hint">Enter로 전송 · Shift+Enter로 줄바꿈</p>
+      <details ref={helpDetails} className="photo-chat-help" onToggle={event => { if (event.currentTarget.open && referenceDetails.current) referenceDetails.current.open = false; }}>
+        <summary>{loadingStatus ? '연결 확인 중…' : exhausted ? '사용량 소진 · 안내' : status?.configured ? `${usageLabel || '사용량'} · 안내` : '연결 상태 · 안내'}</summary>
+        <div className="photo-chat-help-content">
+          {mode === 'person' && <p className="photo-chat-person-note">인물 생성은 원본 사진 없이 다시 사용할 인물을 만들어요. 현재 카드는 AI 사진 수정 탭에서만 바뀝니다.</p>}
+          {loadingStatus ? <p role="status">AI 이미지 연결 확인 중…</p> : <div className="photo-chat-availability"><strong>{exhausted ? 'AI 이미지 사용량을 모두 썼어요' : status?.configured ? usageLabel : status?.reason?.includes('로그인') ? '로그인 후 AI 이미지 사용 가능' : status?.reason?.includes('서버') ? 'AI 이미지 서버 연결 확인 필요' : 'AI 이미지 연결 준비 중'}</strong><span>{availabilityDetail}</span>{(!status?.configured || usage?.configured === false) && <button type="button" onClick={() => void refresh()}>연결 다시 확인</button>}</div>}
+          <p className="photo-chat-hint">Enter로 전송 · Shift+Enter로 줄바꿈</p>
+        </div>
+      </details>
     </form>
   </aside>;
 }
